@@ -16,7 +16,7 @@ const SITE = {
 };
 
 /* ── 상담문의 GAS 연동 (절대 수정 금지) ───────────────────── */
-const GAS_URL = 'PASTE_YOUR_GAS_DEPLOY_URL_HERE';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwPFFNY8ILi3XjKRSoYG1SSfL04hpigDvRVTADVgJFilLIh8WK27p9RaoWEz8bydT6VXg/exec';
 /* ────────────────────────────────────────────────────────── */
 
 const LANGS = [
