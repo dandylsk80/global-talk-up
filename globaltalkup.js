@@ -15,6 +15,12 @@ const SITE = {
   desc: '영어·중국어·일본어 회화 과외를 화상과 전화로. 1:1 맞춤 커리큘럼, 주 1~5회 선택.'
 };
 
+/* ── 텔레그램 알림 ─────────────────────────────────────────
+   봇 토큰과 채팅 ID를 넣으면 전화·상담 클릭 시 즉시 알림이 옵니다.
+   비워두면 알림 기능만 꺼지고 나머지는 정상 작동합니다. */
+const TG_TOKEN = 'PASTE_TELEGRAM_BOT_TOKEN';
+const TG_CHAT  = 'PASTE_TELEGRAM_CHAT_ID';
+
 /* ── 상담문의 GAS 연동 (절대 수정 금지) ───────────────────── */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzCuPD_ah9LhP0wBVM00DK5qR2jx3bmQQMb0sZxmhppusbWbMbIgfg4XnXiagH-_8_R/exec';
 /* ────────────────────────────────────────────────────────── */
@@ -2367,15 +2373,110 @@ function rssXml() {
     '</channel></rss>';
 }
 
+/* ── 텔레그램 알림 ──────────────────────────────────────── */
+const TG_LABEL = {
+  tel: '전화 버튼 클릭', form: '상담 버튼 클릭',
+  cta: '상담 신청 버튼 클릭', contact: '상담 신청 접수'
+};
+
+/* 경로에서 지역·언어·목적 해석 */
+function describePath(path) {
+  const seg = String(path || '').split('?')[0].split('/').filter(Boolean);
+  const out = { area: '', lang: '', pur: '', kind: '일반 페이지' };
+  if (!seg.length) { out.kind = '메인'; return out; }
+  const lang = LANG_BY[seg[0]];
+  if (!lang) {
+    if (seg[0] === 'contact') out.kind = '상담문의 페이지';
+    else if (seg[0] === 'about') out.kind = '소개 페이지';
+    else if (seg[0] === 'all-areas') out.kind = '전체 지역 목록';
+    return out;
+  }
+  out.lang = lang.ko;
+  let rest;
+  if (seg[1] === 'area') rest = seg.slice(2);
+  else if (PUR_BY[seg[1]]) { out.pur = PUR_BY[seg[1]].ko; rest = seg.slice(2); }
+  else { out.kind = lang.ko + ' 허브'; return out; }
+  const names = [];
+  const sido = rest[0] ? SIDO_BY[rest[0]] : null;
+  if (sido) {
+    names.push(sido.short);
+    const gugun = rest[1] && !rest[1].startsWith('group-') ? findGugun(sido.s, rest[1]) : null;
+    if (gugun) {
+      names.push(gugun.ko.split(' ').pop());
+      const dong = rest[2] ? findDong(sido.s, gugun.s, rest[2]) : null;
+      if (dong) names.push(dong.ko);
+    }
+  }
+  out.area = names.join(' ');
+  out.kind = out.area ? '지역 페이지' : (out.pur ? '목적 페이지' : '언어 페이지');
+  return out;
+}
+
+function refName(ref) {
+  if (!ref) return '직접 방문 또는 알 수 없음';
+  try {
+    const h = new URL(ref).hostname.replace(/^www\./, '');
+    if (h === SITE.domain) return '사이트 내부 이동';
+    if (h.includes('naver')) return '네이버';
+    if (h.includes('google')) return '구글';
+    if (h.includes('daum')) return '다음';
+    if (h.includes('bing')) return 'Bing';
+    if (h.includes('kakao')) return '카카오';
+    if (h.includes('instagram')) return '인스타그램';
+    if (h.includes('facebook')) return '페이스북';
+    if (h.includes('youtube')) return '유튜브';
+    return h;
+  } catch (e) { return '알 수 없음' }
+}
+
+function kstNow() {
+  const d = new Date(Date.now() + 9 * 3600000);
+  const p = n => String(n).padStart(2, '0');
+  return d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate()) +
+    ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes());
+}
+
+async function notifyTelegram(event, path, req) {
+  if (!TG_TOKEN || TG_TOKEN.indexOf('PASTE_') === 0) return;
+  if (!TG_CHAT || TG_CHAT.indexOf('PASTE_') === 0) return;
+  const label = TG_LABEL[event];
+  if (!label) return;
+  const d = describePath(path);
+  const ua = req.headers.get('user-agent') || '';
+  const mobile = /Mobile|Android|iPhone|iPad/i.test(ua) ? '모바일' : 'PC';
+  const lines = [];
+  lines.push((event === 'tel' ? '📞 ' : '📝 ') + label);
+  lines.push('');
+  lines.push('사이트: ' + SITE.name + ' (' + SITE.domain + ')');
+  if (d.area) lines.push('지역: ' + d.area);
+  if (d.lang) lines.push('언어: ' + d.lang + (d.pur ? ' · ' + d.pur : ''));
+  lines.push('페이지: ' + SITE.origin + path);
+  lines.push('유입: ' + refName(req.headers.get('referer')));
+  lines.push('기기: ' + mobile);
+  lines.push('시각: ' + kstNow() + ' (KST)');
+  try {
+    await fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendMessage', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TG_CHAT, text: lines.join('\n'), disable_web_page_preview: true
+      })
+    });
+  } catch (e) { /* 알림 실패는 무시 */ }
+}
+
 /* ── 봇 필터 ────────────────────────────────────────────── */
 const BOT_RE = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|curl|wget|python|axios|headless|lighthouse|pagespeed|gptbot|claude|perplexity|yeti|daumoa|semrush|ahrefs|mj12|dotbot|petal|bytespider|applebot|amazonbot|monitor|uptime|scan/i;
 const TRACK_TABLE = 'gtu_events';
 
-async function handleTrack(req, env) {
+async function handleTrack(req, env, ctx) {
   try {
     const body = await req.json();
     const ua = req.headers.get('user-agent') || '';
     if (body.e === 'view' && BOT_RE.test(ua)) return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
+    if (TG_LABEL[body.e] && !BOT_RE.test(ua)) {
+      const p = notifyTelegram(body.e, String(body.p || '/').slice(0, 300), req);
+      if (ctx && ctx.waitUntil) ctx.waitUntil(p); else await p;
+    }
     if (env && env.DB) {
       await env.DB.prepare(
         'CREATE TABLE IF NOT EXISTS ' + TRACK_TABLE +
@@ -2423,7 +2524,7 @@ const txt = s => new Response(s, { headers: H_TXT });
 const redir = loc => new Response(null, { status: 301, headers: { location: loc } });
 
 /* ── 라우터 ─────────────────────────────────────────────── */
-async function route(req, env) {
+async function route(req, env, ctx) {
   const url = new URL(req.url);
   let path = url.pathname.replace(/\/+$/, '') || '/';
 
@@ -2433,7 +2534,7 @@ async function route(req, env) {
   }
 
   if (path === '/api/contact') return handleContact(req);
-  if (path === '/api/track') return handleTrack(req, env);
+  if (path === '/api/track') return handleTrack(req, env, ctx);
 
   if (path === '/robots.txt') return txt(robotsTxt());
   if (path === '/llms.txt') return txt(llmsTxt());
@@ -2518,8 +2619,8 @@ async function indexNowPush(hour) {
 }
 
 export default {
-  async fetch(req, env) {
-    try { return await route(req, env); }
+  async fetch(req, env, ctx) {
+    try { return await route(req, env, ctx); }
     catch (e) { return new Response('Error: ' + e.message, { status: 500 }); }
   },
   async scheduled(event, env, ctx) {
