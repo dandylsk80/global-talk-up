@@ -1,9 +1,6 @@
 name = "globaltalkup"
-main = "worker.js"
+main = "globaltalkup.js"
 compatibility_date = "2025-01-01"
-
-# 도메인 연결은 Cloudflare Workers 대시보드에서 수동으로 진행합니다.
-# routes 배열을 추가하면 DNS가 깨지므로 절대 넣지 마세요.
 
 [triggers]
 crons = ["0 * * * *"]
