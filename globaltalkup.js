@@ -16,7 +16,7 @@ const SITE = {
 };
 
 /* ── 상담문의 GAS 연동 (절대 수정 금지) ───────────────────── */
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwPFFNY8ILi3XjKRSoYG1SSfL04hpigDvRVTADVgJFilLIh8WK27p9RaoWEz8bydT6VXg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzCuPD_ah9LhP0wBVM00DK5qR2jx3bmQQMb0sZxmhppusbWbMbIgfg4XnXiagH-_8_R/exec';
 /* ────────────────────────────────────────────────────────── */
 
 const LANGS = [
