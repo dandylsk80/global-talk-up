@@ -18,8 +18,8 @@ const SITE = {
 /* ── 텔레그램 알림 ─────────────────────────────────────────
    봇 토큰과 채팅 ID를 넣으면 전화·상담 클릭 시 즉시 알림이 옵니다.
    비워두면 알림 기능만 꺼지고 나머지는 정상 작동합니다. */
-const TG_TOKEN = 'PASTE_TELEGRAM_BOT_TOKEN';
-const TG_CHAT  = 'PASTE_TELEGRAM_CHAT_ID';
+const TG_TOKEN = '8101954996:AAGNV225WaNL8Zqh9OxtmP1WNzlbquNaq9s';
+const TG_CHAT  = '8649422714';
 
 /* ── 상담문의 GAS 연동 (절대 수정 금지) ───────────────────── */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzCuPD_ah9LhP0wBVM00DK5qR2jx3bmQQMb0sZxmhppusbWbMbIgfg4XnXiagH-_8_R/exec';
