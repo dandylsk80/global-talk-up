@@ -2234,7 +2234,7 @@ function manifestJson() {
 }
 
 /* ── SEO 엔드포인트 ─────────────────────────────────────── */
-const INDEXNOW_KEY = 'a7f3c9e2b5d84610af92c73e5b1d8064';
+const INDEXNOW_KEY = 'ed8128cdf2e741588641135eb5a1a584';
 
 function xmlUrl(loc, pri, freq) {
   return '<url><loc>' + SITE.origin + loc + '</loc><changefreq>' + (freq || 'weekly') +
