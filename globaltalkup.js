@@ -1339,6 +1339,7 @@ function layout(o) {
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="manifest" href="/manifest.json">
 <link rel="alternate" type="application/rss+xml" title="${SITE.name}" href="/rss.xml">
+<link rel="alternate" type="application/atom+xml" title="${SITE.name}" href="/atom.xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2300,7 +2301,6 @@ function robotsTxt() {
   L.push('Host: ' + SITE.domain);
   L.push('');
   L.push('#DaumWebMasterTool:865c6abc91423fa39d2b5187bfb5155b0c70e4a89ded6af6df14233eb197153b:nvHZppujwu/syzR0MPAJAQ==');
-  L.push('');
   return L.join('\n');
 }
 
@@ -2317,14 +2317,50 @@ function llmsTxt() {
     '## 사이트맵', SITE.origin + '/sitemap.xml', ''].join('\n');
 }
 
+function feedItems() {
+  const out = [];
+  for (const l of LANGS) {
+    out.push(['[' + l.ko + '] ' + l.ko + ' 회화 과외', '/' + l.s,
+      l.ko + ' 회화 과외 전국 매칭. ' + l.exams.join(', ') + ' 대비 가능.']);
+    for (const p of PURPOSES)
+      out.push(['[' + l.ko + '] ' + p.full, '/' + l.s + '/' + p.s,
+        p.who + '을 위한 ' + l.ko + ' ' + p.full + ' 과정. ' + p.tag + '.']);
+  }
+  for (const s of SIDO)
+    out.push([s[2] + ' 지역 회화 과외', '/english/area/' + s[0],
+      s[1] + ' ' + gugunList(s[0]).length + '개 시군구 영어·중국어·일본어 회화 과외 안내.']);
+  return out;
+}
+
+function atomXml() {
+  const now = new Date().toISOString();
+  const items = feedItems();
+  return '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="ko">' +
+    '<title>' + esc(SITE.name) + '</title>' +
+    '<subtitle>' + esc(SITE.desc) + '</subtitle>' +
+    '<link rel="alternate" type="text/html" href="' + SITE.origin + '"/>' +
+    '<link rel="self" type="application/atom+xml" href="' + SITE.origin + '/atom.xml"/>' +
+    '<id>' + SITE.origin + '/</id>' +
+    '<updated>' + now + '</updated>' +
+    '<author><name>' + esc(SITE.name) + '</name><email>' + SITE.email + '</email></author>' +
+    items.map(i => '<entry>' +
+      '<title>' + esc(i[0]) + '</title>' +
+      '<link rel="alternate" type="text/html" href="' + SITE.origin + i[1] + '"/>' +
+      '<id>' + SITE.origin + i[1] + '</id>' +
+      '<updated>' + now + '</updated>' +
+      '<summary type="text">' + esc(i[2]) + '</summary>' +
+      '</entry>').join('') +
+    '</feed>';
+}
+
 function rssXml() {
-  const items = [];
-  for (const l of LANGS) for (const p of PURPOSES)
-    items.push(['[' + l.ko + '] ' + p.full, '/' + l.s + '/' + p.s, p.who + '을 위한 ' + l.ko + ' ' + p.full + ' 과정']);
+  const items = feedItems();
   const now = new Date().toUTCString();
   return '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>' +
     '<title>' + SITE.name + '</title><link>' + SITE.origin + '</link>' +
-    '<description>' + SITE.desc + '</description><language>ko</language><lastBuildDate>' + now + '</lastBuildDate>' +
+    '<description>' + esc(SITE.desc) + '</description><language>ko</language><lastBuildDate>' + now + '</lastBuildDate>' +
+    '<atom:link xmlns:atom="http://www.w3.org/2005/Atom" href="' + SITE.origin + '/rss.xml" rel="self" type="application/rss+xml"/>' +
     items.map(i => '<item><title>' + esc(i[0]) + '</title><link>' + SITE.origin + i[1] + '</link>' +
       '<guid>' + SITE.origin + i[1] + '</guid><description>' + esc(i[2]) + '</description>' +
       '<pubDate>' + now + '</pubDate></item>').join('') +
@@ -2403,6 +2439,7 @@ async function route(req, env) {
   if (path === '/llms.txt') return txt(llmsTxt());
   if (path === '/llms-full.txt') return txt(llmsFullTxt());
   if (path === '/rss.xml') return xml(rssXml());
+  if (path === '/atom.xml') return new Response(atomXml(), { headers: { 'content-type': 'application/atom+xml;charset=utf-8', 'cache-control': 'public,max-age=3600' } });
   if (path === '/sitemap.xml') return xml(sitemapIndex());
   if (path === '/sitemap-core.xml') return xml(sitemapCore());
   if (path === '/' + INDEXNOW_KEY + '.txt') return txt(INDEXNOW_KEY);
