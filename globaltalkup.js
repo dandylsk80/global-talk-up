@@ -1332,7 +1332,7 @@ function layout(o) {
 <meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${desc}">
 <meta name="twitter:image" content="${og}">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
-<meta name="naver-site-verification" content="">
+<meta name="naver-site-verification" content="6ab20ec22b6a3493254494e269a97cb0c665d4f2">
 <meta name="google-site-verification" content="">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/icon-192.png" sizes="192x192">
@@ -2298,6 +2298,8 @@ function robotsTxt() {
   for (const b of AI_BOTS) L.push('User-agent: ' + b, 'Allow: /', '');
   L.push('Sitemap: ' + SITE.origin + '/sitemap.xml');
   L.push('Host: ' + SITE.domain);
+  L.push('');
+  L.push('#DaumWebMasterTool:865c6abc91423fa39d2b5187bfb5155b0c70e4a89ded6af6df14233eb197153b:nvHZppujwu/syzR0MPAJAQ==');
   L.push('');
   return L.join('\n');
 }
