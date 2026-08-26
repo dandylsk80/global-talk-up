@@ -18,8 +18,6 @@ const SITE = {
 /* ── 텔레그램 알림 ─────────────────────────────────────────
    봇 토큰과 채팅 ID를 넣으면 전화·상담 클릭 시 즉시 알림이 옵니다.
    비워두면 알림 기능만 꺼지고 나머지는 정상 작동합니다. */
-const TG_TOKEN = '8101954996:AAGNV225WaNL8Zqh9OxtmP1WNzlbquNaq9s';
-const TG_CHAT  = '8649422714';
 
 /* ── 상담문의 GAS 연동 (절대 수정 금지) ───────────────────── */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzCuPD_ah9LhP0wBVM00DK5qR2jx3bmQQMb0sZxmhppusbWbMbIgfg4XnXiagH-_8_R/exec';
@@ -2436,9 +2434,10 @@ function kstNow() {
     ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes());
 }
 
-async function notifyTelegram(event, path, req) {
-  if (!TG_TOKEN || TG_TOKEN.indexOf('PASTE_') === 0) return;
-  if (!TG_CHAT || TG_CHAT.indexOf('PASTE_') === 0) return;
+async function notifyTelegram(env, event, path, req) {
+  const TG_TOKEN = env && env.TG_TOKEN;
+  const TG_CHAT = env && env.TG_CHAT;
+  if (!TG_TOKEN || !TG_CHAT) return;
   const label = TG_LABEL[event];
   if (!label) return;
   const d = describePath(path);
@@ -2478,7 +2477,7 @@ async function handleTrack(req, env, ctx) {
     const ua = req.headers.get('user-agent') || '';
     if (body.e === 'view' && BOT_RE.test(ua)) return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
     if (TG_LABEL[body.e] && !BOT_RE.test(ua)) {
-      const p = notifyTelegram(body.e, String(body.p || '/').slice(0, 300), req);
+      const p = notifyTelegram(env, body.e, String(body.p || '/').slice(0, 300), req);
       if (ctx && ctx.waitUntil) ctx.waitUntil(p); else await p;
     }
     if (env && env.DB) {
