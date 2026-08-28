@@ -2407,6 +2407,11 @@ function describePath(path) {
   }
   out.area = names.join(' ');
   out.kind = out.area ? '지역 페이지' : (out.pur ? '목적 페이지' : '언어 페이지');
+  if (out.area) {
+    out.area = out.area + ' ' + lang.ko + ' 회화 과외' + (out.pur ? ' · ' + out.pur : '');
+    out.lang = '';
+    out.pur = '';
+  }
   return out;
 }
 
@@ -2453,7 +2458,7 @@ async function notifyTelegram(env, event, path, req) {
   lines.push('');
   lines.push('사이트: ' + SITE.name + ' (' + SITE.domain + ')');
   lines.push('페이지: ' + SITE.origin + path);
-  lines.push('한글: ' + ko);
+  lines.push('검색 키워드: ' + ko);
   lines.push('유입: ' + refName(req.headers.get('referer')));
   lines.push('기기: ' + mobile);
   lines.push('시각: ' + kstNow() + ' (KST)');
