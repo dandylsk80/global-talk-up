@@ -2474,7 +2474,10 @@ async function notifyTelegram(env, event, path, req) {
 
 /* ── 봇 필터 ────────────────────────────────────────────── */
 const BOT_RE = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|curl|wget|python|axios|headless|lighthouse|pagespeed|gptbot|claude|perplexity|yeti|daumoa|semrush|ahrefs|mj12|dotbot|petal|bytespider|applebot|amazonbot|monitor|uptime|scan/i;
-const TRACK_TABLE = 'gtu_events';
+/* 통합 대시보드(allcarestudy)의 events 테이블에 기록 — site 키: globaltalkup */
+const TRACK_SITE = 'globaltalkup';
+/* 이 사이트 고유 이벤트명 → 대시보드 공통 타입 */
+const TRACK_TYPE = { view: 'view', tel: 'tel', form: 'contact', cta: 'contact', contact: 'contact' };
 
 async function handleTrack(req, env, ctx) {
   try {
@@ -2485,13 +2488,12 @@ async function handleTrack(req, env, ctx) {
       const p = notifyTelegram(env, body.e, String(body.p || '/').slice(0, 300), req);
       if (ctx && ctx.waitUntil) ctx.waitUntil(p); else await p;
     }
-    if (env && env.DB) {
-      await env.DB.prepare(
-        'CREATE TABLE IF NOT EXISTS ' + TRACK_TABLE +
-        ' (id INTEGER PRIMARY KEY AUTOINCREMENT, site TEXT, event TEXT, page TEXT, ua TEXT, ref TEXT, ts TEXT)').run();
-      await env.DB.prepare('INSERT INTO ' + TRACK_TABLE + ' (site,event,page,ua,ref,ts) VALUES (?,?,?,?,?,?)')
-        .bind(SITE.domain, String(body.e || '').slice(0, 32), String(body.p || '').slice(0, 300),
-          ua.slice(0, 200), (req.headers.get('referer') || '').slice(0, 200), new Date().toISOString()).run();
+    const ty = TRACK_TYPE[body.e];
+    if (env && env.DB && ty) {
+      await env.DB.prepare('INSERT INTO events (site,type,page,ref,ip,ts) VALUES (?,?,?,?,?,?)')
+        .bind(TRACK_SITE, ty, String(body.p || '').slice(0, 300),
+          (req.headers.get('referer') || '').slice(0, 120),
+          req.headers.get('CF-Connecting-IP') || '', new Date().toISOString()).run();
     }
   } catch (e) { /* 추적 실패는 무시 */ }
   return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
