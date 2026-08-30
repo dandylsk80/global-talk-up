@@ -1,3 +1,41 @@
+function reEsc(x){ return x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+/* 이름 뒤 조사를 받침에 맞게 고른다 (danmalgi 검증본을 13개 공통으로 사용) */
+function josaFor(word,j){
+  const ch=String(word).charCodeAt(String(word).length-1)-0xAC00;
+  const hasJ=(ch>=0&&ch<=11171)?((ch%28)!==0):false;
+  const isRieul=(ch>=0&&ch<=11171)?((ch%28)===8):false;
+  switch(j){
+    case "\uc740": case "\ub294": return hasJ?"\uc740":"\ub294";
+    case "\uc774": case "\uac00": return hasJ?"\uc774":"\uac00";
+    case "\uc744": case "\ub97c": return hasJ?"\uc744":"\ub97c";
+    case "\uc640": case "\uacfc": return hasJ?"\uacfc":"\uc640";
+    case "\uc73c\ub85c": case "\ub85c": return (!hasJ||isRieul)?"\ub85c":"\uc73c\ub85c";
+    case "\uc774\ub098": case "\ub098": return hasJ?"\uc774\ub098":"\ub098";
+    case "\uc774\ub77c": case "\ub77c": return hasJ?"\uc774\ub77c":"\ub77c";
+    case "\uc774\uba70": case "\uba70": return hasJ?"\uc774\uba70":"\uba70";
+    default: return j;
+  }
+}
+/* 주어진 단어들 뒤에 붙은 조사만 골라 교정한다 (동사 어미는 건드리지 않음) */
+function fixJosa(s,names){
+  for(const nm of names){
+    if(!nm) continue;
+    s=s.replace(new RegExp(reEsc(String(nm))+"(\uc73c\ub85c|\uc774\ub098|\uc774\ub77c|\uc774\uba70|[\uc740\ub294\uc774\uac00\uc744\ub97c\uc640\uacfc\ub85c\ub098\ub77c\uba70])(?=[\\s.,!?)\u00b7\u2019\u201d]|$)","g"),
+      function(m,j){ return nm+josaFor(nm,j); });
+  }
+  return s;
+}
+
+/* ===== 한국어 조사 자동 판별 (받침 유무) — 13개 사이트 공통 =====
+   J("강남동","은","는") -> "강남동은"   J("제주시","은","는") -> "제주시는"
+   J(x,"으로","로") 은 ㄹ 받침도 처리한다. 한글이 아니면 받침 없음으로 본다. */
+function hasJong(w){ if(w==null) return false; w=String(w).trim(); if(!w) return false;
+  const c=w.charCodeAt(w.length-1); return (c>=0xAC00&&c<=0xD7A3) ? (c-0xAC00)%28!==0 : false; }
+function J(w,a,b){ w=String(w==null?"":w);
+  const c=w.charCodeAt(w.length-1)-0xAC00, j=(c<0||c>11171)?-1:c%28;
+  if(a==="\uc73c\ub85c"||b==="\ub85c") return w+((j<=0||j===8)?"\ub85c":"\uc73c\ub85c");
+  return w+(j>0?a:b); }
+
 /* ===== 방문 상세 메타: 기기 / 유입경로 / 검색 키워드 ===== */
 function tkDevice(ua){
   ua = ua || "";
@@ -1954,7 +1992,7 @@ function pageArea(lang, pur, sido, gugun, dong, path) {
   c.sub = pur
     ? pick(HERO_SUB, seed + 'h')(tplCtx({ ...c, pur }))
     : `${c.areaFull} ${lang.ko} 회화 과외를 목적별로 나눠 안내합니다. 목표에 맞는 커리큘럼과 선생님을 연결해 드립니다.`;
-  c.desc = `${c.areaFull} ${lang.ko} ${pur ? pur.full : '회화 과외'} 매칭. ${pur ? pur.who : '수준별 맞춤 수업'}을 위한 화상·전화 1:1 수업. 주 1~5회 선택 가능. 무료 상담 ${SITE.tel}`;
+  c.desc = `${c.areaFull} ${lang.ko} ${pur ? pur.full : '회화 과외'} 매칭. ${J(pur ? pur.who : '수준별 맞춤 수업',"을","를")} 위한 화상·전화 1:1 수업. 주 1~5회 선택 가능. 무료 상담 ${SITE.tel}`;
   c.chips = pur
     ? [pur.tag].concat(pickN(CHIP_POOL, seed + 'ch', 3))
     : ['목적별 커리큘럼'].concat(pickN(CHIP_POOL, seed + 'ch', 3));
@@ -2127,7 +2165,7 @@ function pageHome() {
 function pageLang(lang) {
   const c = buildCtx(lang, null, null, null, null);
   c.h1 = `${lang.ko} 회화 과외`;
-  c.sub = `${lang.greet} — ${lang.flagKo} ${lang.nat}과 한국인 선생님을 목적에 맞게 연결합니다. 전국 ${dongCount().toLocaleString()}개 읍면동에서 매칭 가능합니다.`;
+  c.sub = `${lang.greet} — ${lang.flagKo} ${J(lang.nat,"과","와")} 한국인 선생님을 목적에 맞게 연결합니다. 전국 ${dongCount().toLocaleString()}개 읍면동에서 매칭 가능합니다.`;
   c.chips = ['12가지 목적', lang.flagKo + ' ' + lang.nat, '화상·전화', '주 1~5회'];
   c.desc = `${lang.ko} 회화 과외 전국 매칭. 기초부터 비즈니스·시험·면접까지 12가지 목적별 커리큘럼. ${lang.exams.join(', ')} 대비 가능.`;
   const cr = [['홈', '/'], [lang.ko + '회화', null]];
@@ -2221,7 +2259,7 @@ ${bc([['홈', '/'], ['소개', null]])}
 <p class="lead">전국 ${SIDO.length}개 시도, ${gugunCount()}개 시군구, ${dongCount().toLocaleString()}개 읍면동.</p>
 <div class="links">${SIDO.map(s => `<a href="/english/area/${s[0]}">${s[2]}</a>`).join('')}</div>
 </div></section>`;
-  return layout({ title: `소개 | ${SITE.name}`, desc: `${SITE.name}는 영어·중국어·일본어 회화 과외를 목적별로 나눠 매칭합니다.`,
+  return layout({ title: `소개 | ${SITE.name}`, desc: `${J(SITE.name,"은","는")} 영어·중국어·일본어 회화 과외를 목적별로 나눠 매칭합니다.`,
     kw: '글로벌톡업 소개, 회화 과외 매칭', path: '/about', ogKey: 'home', body,
     ld: [ldOrg(), ldBreadcrumb([['홈', '/'], ['소개', '/about']])] });
 }
