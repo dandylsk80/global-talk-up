@@ -1,3 +1,19 @@
+/* IndexNow 폴백: api.indexnow.org / www.bing.com 은 Cloudflare Workers 의 공용
+   아웃바운드 IP 에 429(TooManyRequests)를 반환하는 경우가 많다. IndexNow 는 참여
+   엔드포인트 한 곳만 성공하면 나머지 엔진으로 전파되므로 순차 폴백한다. */
+const INDEXNOW_FALLBACK_EPS = ["https://api.indexnow.org/indexnow","https://yandex.com/indexnow","https://search.seznam.cz/indexnow"];
+async function indexnowFetch(opt){
+  let last=null;
+  for(const ep of INDEXNOW_FALLBACK_EPS){
+    try{
+      const r=await fetch(ep,opt);
+      if(r.status>=200&&r.status<300) return r;
+      last=r;
+    }catch(e){}
+  }
+  return last||{status:0};
+}
+
 /**
  * GlobalTalkUp.com — 글로벌톡업
  * 영어 / 중국어 / 일본어 회화 과외 매칭 플랫폼
@@ -2623,9 +2639,11 @@ async function indexNowPush(hour) {
   const urlList = all.slice(idx * SIZE, (idx + 1) * SIZE);
   const body = JSON.stringify({ host: SITE.domain, key: INDEXNOW_KEY,
     keyLocation: SITE.origin + '/' + INDEXNOW_KEY + '.txt', urlList });
-  const eps = ['https://api.indexnow.org/indexnow', 'https://searchadvisor.naver.com/indexnow'];
-  await Promise.all(eps.map(u => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
-    .catch(() => null)));
+  const opt = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body };
+  await Promise.all([
+    indexnowFetch(opt).catch(() => null),
+    fetch('https://searchadvisor.naver.com/indexnow', opt).catch(() => null)
+  ]);
 }
 
 export default {
