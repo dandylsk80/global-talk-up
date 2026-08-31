@@ -2586,7 +2586,7 @@ async function notifyTelegram(env, event, path, req) {
 }
 
 /* ── 봇 필터 ────────────────────────────────────────────── */
-const BOT_RE = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|curl|wget|python|axios|headless|lighthouse|pagespeed|gptbot|claude|perplexity|yeti|daumoa|semrush|ahrefs|mj12|dotbot|petal|bytespider|applebot|amazonbot|monitor|uptime|scan/i;
+const BOT_RE = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|curl|wget|python|axios|headless|lighthouse|pagespeed|gptbot|claude|perplexity|yeti|daumoa|cs\.daum\.net|compatible;\s*daum\/|semrush|ahrefs|mj12|dotbot|petal|bytespider|applebot|amazonbot|monitor|uptime|scan/i;
 /* 통합 대시보드(allcarestudy)의 events 테이블에 기록 — site 키: globaltalkup */
 const TRACK_SITE = 'globaltalkup';
 /* 이 사이트 고유 이벤트명 → 대시보드 공통 타입 */
