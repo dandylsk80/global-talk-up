@@ -2387,6 +2387,8 @@ function robotsTxt() {
   for (const b of SEARCH_BOTS) L.push('User-agent: ' + b, 'Allow: /', '');
   L.push('# AI 검색·학습 크롤러 — 인용을 위해 전체 허용');
   for (const b of AI_BOTS) L.push('User-agent: ' + b, 'Allow: /', '');
+  L.push('# llms.txt: ' + SITE.origin + '/llms.txt');
+  L.push('Llms-txt: ' + SITE.origin + '/llms.txt');
   L.push('Sitemap: ' + SITE.origin + '/sitemap.xml');
   L.push('Host: ' + SITE.domain);
   L.push('');
@@ -2400,9 +2402,33 @@ function llmsTxt() {
     '- 전국 ' + SIDO.length + '개 시도 / ' + gugunCount() + '개 시군구 / ' + dongCount().toLocaleString() + '개 읍면동',
     '- 목적별 12가지 과정: ' + PURPOSES.map(p => p.ko).join(', '),
     '- 수업 방식: 화상, 전화 (대면 수업 없음)', '- 수업 구성: 1:1, 주 1~5회', '- 문의: ' + SITE.tel, '',
+    '## 주요 서비스',
+    '- 1:1 회화 과외 — 영어·중국어·일본어를 원어민 또는 한국인 강사와 일대일로 수업',
+    '- 화상·전화 수업 — 이동 없이 집이나 사무실에서 진행, 대면 수업은 운영하지 않음',
+    '- 목적별 맞춤 과정 — 기초·비즈니스·여행·시험대비·면접·발음교정 등 12가지 과정',
+    '- 시험 대비 — 토익스피킹·오픽·IELTS·HSK·TSC·JLPT 등 말하기 시험 준비',
+    '- 수업 구성 — 주 1~5회에서 선택, 학습 목표에 맞춰 커리큘럼을 먼저 설계',
+    '- 상담 연결 — 전화 ' + SITE.tel + '로 언어·목적·희망 시간대를 확인하고 강사 매칭',
+    '',
     '## 언어별', LANGS.map(l => '- [' + l.ko + ' 회화](' + SITE.origin + '/' + l.s + '): ' + l.exams.join(', ') + ' 대비 가능').join('\n'), '',
     '## 목적별', PURPOSES.map(p => '- [' + p.ko + '](' + SITE.origin + '/english/' + p.s + '): ' + p.tag + ' — ' + p.who).join('\n'), '',
     '## 지역', SIDO.map(s => '- [' + s[2] + '](' + SITE.origin + '/english/area/' + s[0] + ')').join('\n'), '',
+    '## 자주 묻는 질문',
+    '- Q. 어떤 언어를 배울 수 있나요?',
+    '  A. 영어·중국어·일본어 세 가지입니다. 각 언어마다 원어민 강사와 한국인 강사를 모두 두고 있어 수준에 맞춰 고를 수 있습니다.',
+    '- Q. 수업은 어떻게 진행되나요?',
+    '  A. 화상 또는 전화로 진행하는 1:1 수업입니다. 대면 수업은 운영하지 않기 때문에 지방이나 해외에 계셔도 같은 조건으로 수업할 수 있습니다.',
+    '- Q. 완전 초보인데 원어민 수업이 가능할까요?',
+    '  A. 기초·왕초보 과정은 한국인 강사로 시작해 문장을 만드는 감각을 잡은 뒤 원어민 수업으로 넘어가는 순서를 권합니다.',
+    '- Q. 주 몇 회가 적당한가요?',
+    '  A. 주 1~5회 중에서 고를 수 있습니다. 시험이나 출국 일정이 급하면 주 3회 이상, 습관을 잡는 단계면 주 1~2회가 무난합니다.',
+    '- Q. 시험 대비도 되나요?',
+    '  A. 됩니다. 영어는 토익스피킹·오픽·토플 스피킹·IELTS, 중국어는 HSK·HSKK·TSC·BCT, 일본어는 JLPT·JPT·SJPT·EJU를 다룹니다.',
+    '- Q. 지역 페이지는 왜 있나요?',
+    '  A. 화상·전화 수업이라 지역 제한은 없지만, 지역별로 많이 찾는 목적과 시간대가 달라 안내 페이지를 따로 두고 있습니다.',
+    '- Q. 상담은 어떻게 하나요?',
+    '  A. 전화 ' + SITE.tel + '로 연락하거나 상담 페이지(' + SITE.origin + '/contact)에서 신청하시면 됩니다.',
+    '',
     '## 더 자세한 구조', SITE.origin + '/llms-full.txt', '',
     '## 사이트맵', SITE.origin + '/sitemap.xml', ''].join('\n');
 }
