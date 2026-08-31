@@ -1384,7 +1384,7 @@ footer a:hover{color:#fff}
 .fab{position:fixed;right:18px;bottom:18px;z-index:200;display:flex;flex-direction:column;gap:9px}
 .fab a{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;
 color:#fff;font-weight:800;font-size:12.5px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
-.fab .f1{background:var(--ac)}.fab .f2{background:var(--p)}
+.fab .f1{background:var(--ac)}.fab .f3{background:#00A86B}.fab .f2{background:var(--p)}
 @media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}.flinks{gap:12px}}
 @media(max-width:640px){
 .hero{padding:40px 0 38px}.hero h1{font-size:27px}.hero p.sub{font-size:15.5px}
@@ -1462,6 +1462,7 @@ ${LANGS.map(l => `<a href="/${l.s}">${l.ko}회화</a>`).join('')}
 </div></footer>
 <div class="fab">
 <a href="tel:${SITE.telRaw}" class="f1" onclick="tk('tel')">전화</a>
+<a href="sms:${SITE.telRaw}" class="f3" onclick="tk('sms')">문자</a>
 <a href="/contact" class="f2" onclick="tk('form')">상담</a>
 </div>
 <script>
@@ -2485,7 +2486,7 @@ function rssXml() {
 
 /* ── 텔레그램 알림 ──────────────────────────────────────── */
 const TG_LABEL = {
-  tel: '전화 버튼 클릭', form: '상담 버튼 클릭',
+  tel: '전화 버튼 클릭', sms: '문자 버튼 클릭', form: '상담 버튼 클릭',
   cta: '상담 신청 버튼 클릭', contact: '상담 신청 접수'
 };
 
@@ -2589,7 +2590,7 @@ const BOT_RE = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|whatsapp|
 /* 통합 대시보드(allcarestudy)의 events 테이블에 기록 — site 키: globaltalkup */
 const TRACK_SITE = 'globaltalkup';
 /* 이 사이트 고유 이벤트명 → 대시보드 공통 타입 */
-const TRACK_TYPE = { view: 'view', tel: 'tel', form: 'contact', cta: 'contact', contact: 'contact' };
+const TRACK_TYPE = { view: 'view', tel: 'tel', sms: 'sms', form: 'contact', cta: 'contact', contact: 'contact' };
 
 async function handleTrack(req, env, ctx) {
   try {
