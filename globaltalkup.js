@@ -1515,7 +1515,7 @@ function layout(o) {
 <a href="/" class="logo" aria-label="글로벌톡업 홈">${logoMark(30)}${wordGlobal(23)}<span class="tu">TalkUp</span></a>
 <nav class="nav">
 ${LANGS.map(l => `<a href="/${l.s}"${o.lang === l.s ? ' class="on"' : ''}>${l.ko}회화</a>`).join('')}
-<a href="/all-areas">지역별</a><a href="/about">소개</a><a href="/contact">상담문의</a>
+<a href="/all-areas">지역별</a><a href="/list">전체 목록</a><a href="/about">소개</a><a href="/contact">상담문의</a>
 </nav>
 <a href="/contact" class="hcta">무료 상담</a>
 </div></header>
@@ -1530,7 +1530,7 @@ ${contactForm(o.formCtx || {})}
 <a href="/" class="flogo">${logoMark(24, true)}${wordGlobal(19, true)}<span class="tu">TalkUp</span></a>
 <nav class="flinks">
 ${LANGS.map(l => `<a href="/${l.s}">${l.ko}회화</a>`).join('')}
-<a href="/all-areas">지역별</a><a href="/about">소개</a><a href="/contact">상담문의</a>
+<a href="/all-areas">지역별</a><a href="/list">전체 목록</a><a href="/about">소개</a><a href="/contact">상담문의</a>
 </nav>
 <a href="tel:${SITE.telRaw}" class="ftel">${SITE.tel}</a>
 </div>
@@ -2302,6 +2302,31 @@ ${p < total ? `<a href="/all-areas?page=${p + 1}">다음</a>` : ''}
 }
 
 /* ── 소개 / 상담 ────────────────────────────────────────── */
+function pageList() {
+  const main = [['/', '홈'], ['/about', '소개'], ['/contact', '상담문의'], ['/all-areas', '전체 지역']]
+    .map(x => `<a class="chip" href="${x[0]}">${esc(x[1])}</a>`).join('');
+  let secs = '';
+  for (const l of LANGS) {
+    const purs = PURPOSES.map(p => `<a class="chip" href="/${l.s}/${p.s}">${esc(p.ko)}</a>`).join('');
+    const areas = SIDO.map(s => `<a class="chip" href="/${l.s}/area/${s[0]}">${esc(s[2])}</a>`).join('');
+    secs += `<h2 style="margin-top:26px"><a href="/${l.s}">${esc(l.ko)} 회화</a></h2>
+    <p style="color:var(--tx2);margin:6px 0 10px">목적별 ${PURPOSES.length}가지 · 지역별 ${SIDO.length}개 시도</p>
+    <div class="chips">${purs}</div>
+    <div class="chips" style="margin-top:8px">${areas}</div>`;
+  }
+  const body = `<div class="hero"><div class="wrap">
+${bc([['홈', '/'], ['전체 목록', null]])}
+<h1>전체 목록</h1>
+<p class="sub">${SITE.name}의 언어·목적·지역 페이지를 한곳에 모았습니다.</p>
+</div></div>
+<section><div class="wrap">
+<h2>주요 페이지</h2><div class="chips">${main}</div>
+${secs}
+</div></section>`;
+  return layout({ title: '전체 목록 | ' + SITE.name, desc: SITE.name + '의 영어·중국어·일본어 회화 과외 목적별·지역별 페이지 전체 목록.', path: '/list', body,
+    ld: [{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: '전체 목록', url: SITE.origin + '/list',
+      isPartOf: { '@type': 'WebSite', name: SITE.name, url: SITE.origin } }] });
+}
 function pageAbout() {
   const body = `<div class="hero"><div class="wrap">
 ${bc([['홈', '/'], ['소개', null]])}
@@ -2420,7 +2445,7 @@ function sitemapIndex() {
 }
 
 function sitemapCore() {
-  let u = xmlUrl('/', '1.0', 'daily') + xmlUrl('/about', '0.5') + xmlUrl('/contact', '0.8') + xmlUrl('/all-areas', '0.6');
+  let u = xmlUrl('/', '1.0', 'daily') + xmlUrl('/list', '0.7') + xmlUrl('/about', '0.5') + xmlUrl('/contact', '0.8') + xmlUrl('/all-areas', '0.6');
   const totalPages = Math.ceil(dongCount() / 400);
   for (let i = 2; i <= totalPages; i++) u += xmlUrl('/all-areas?page=' + i, '0.3');
   for (const l of LANGS) {
@@ -2464,6 +2489,7 @@ function robotsTxt() {
   for (const b of SEARCH_BOTS) L.push('User-agent: ' + b, 'Allow: /', '');
   L.push('# AI 검색·학습 크롤러 — 인용을 위해 전체 허용');
   for (const b of AI_BOTS) L.push('User-agent: ' + b, 'Allow: /', '');
+  L.push('# 전체 목록: ' + SITE.origin + '/list');
   L.push('# llms.txt: ' + SITE.origin + '/llms.txt');
   L.push('Llms-txt: ' + SITE.origin + '/llms.txt');
   L.push('Sitemap: ' + SITE.origin + '/sitemap.xml');
@@ -2761,6 +2787,7 @@ async function route(req, env, ctx) {
   if (path === '/') return html(pageHome());
   if (path === '/about') return html(pageAbout());
   if (path === '/contact') return html(pageContact());
+  if (path === '/list') return html(pageList());
   if (path === '/all-areas') return html(pageAllAreas(parseInt(url.searchParams.get('page') || '1', 10) || 1));
 
   const seg = path.split('/').filter(Boolean);
