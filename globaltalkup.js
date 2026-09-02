@@ -2448,6 +2448,13 @@ function smLastmod(key){
   const periods = Math.floor((Date.now()/SM_DAY - off)/SM_PERIOD);
   return new Date((periods*SM_PERIOD + off)*SM_DAY).toISOString().slice(0,10);
 }
+/* RSS 정렬용 날짜: URL 마다 60일 주기로 밀린다. 매일 다른 1/60 묶음이 최신이 되어
+   "최근 항목 위주"를 유지하면서 피드가 날마다 바뀐다. */
+function rssRankDate(u){
+  const off = smHash(u) % 60;
+  const periods = Math.floor((Date.now()/SM_DAY - off)/60);
+  return new Date((periods*60 + off)*SM_DAY);
+}
 /* <loc> 뒤에 lastmod 가 없으면 채워 넣는다 (loc → lastmod → changefreq → priority 순서 유지) */
 function smAddLastmod(xml){
   return String(xml).replace(/<loc>([^<]+)<\/loc>(?!<lastmod>)/g, function(m, l){
@@ -2601,7 +2608,16 @@ function atomXml() {
 }
 
 function rssXml() {
-  const items = feedItems();
+  /* 최근 항목 위주로 매일 회전 */
+  /* 기본 항목(56개)만으로는 피드 크기와 같아 회전이 안 된다.
+     언어×목적×시도 조합을 후보에 넣고 매일 도는 갱신일로 최근 60개만 남긴다. */
+  const pool = feedItems().slice();
+  for (const l of LANGS) for (const p of PURPOSES) for (const s of SIDO)
+    pool.push([s[2] + ' ' + l.ko + ' ' + p.full, '/' + l.s + '/' + p.s + '/' + s[0],
+      s[1] + ' ' + l.ko + ' ' + p.full + ' 과외. ' + p.tag + '.']);
+  const items = pool
+    .sort((a, b) => rssRankDate(SITE.origin + b[1]) - rssRankDate(SITE.origin + a[1]))
+    .slice(0, 60);
   const now = new Date().toUTCString();
   return '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>' +
     '<title>' + SITE.name + '</title><link>' + SITE.origin + '</link>' +
