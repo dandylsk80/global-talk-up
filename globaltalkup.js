@@ -2059,6 +2059,15 @@ function buildCtx(lang, pur, sido, gugun, dong) {
 }
 
 /* ── 지역/목적 페이지 (모든 조합 공통) ──────────────────── */
+/* 주변 지역: 같은 언어의 다른 시·도 12개 */
+function nearbyAreaBlock(langSlug, sidoSlug) {
+  const list = SIDO.filter(x => x[0] !== sidoSlug).slice(0, 12);
+  if (!list.length) return '';
+  const links = list.map(x => `<a class="chip" href="/${langSlug}/area/${x[0]}">${esc(x[2])}</a>`).join('');
+  return `<section><div class="wrap"><h2>주변 지역</h2>
+  <p style="color:var(--tx2);margin:6px 0 10px">다른 시·도에서도 같은 과정으로 수업할 수 있습니다.</p>
+  <div class="chips">${links}</div></div></section>`;
+}
 function pageArea(lang, pur, sido, gugun, dong, path) {
   const c = buildCtx(lang, pur, sido, gugun, dong);
   const seed = path;
@@ -2145,7 +2154,8 @@ function pageArea(lang, pur, sido, gugun, dong, path) {
     title: pageTitle,
     desc: c.desc,
     kw: `${c.areaFull} ${lang.ko}회화, ${c.areaFull} ${lang.ko}과외, ${c.area} ${lang.ko}학원, ${lang.ko} ${pur ? pur.ko : '회화'}`,
-    path, lang: lang.s, ogKey: lang.s, body,
+    path, lang: lang.s, ogKey: lang.s,
+    body: body + (sido && !gugun && !dong ? nearbyAreaBlock(lang.s, sido.s || sido[0] || '') : ''),
     formCtx: { lang: lang.s, pur: pur ? pur.s : '' },
     ld: lds
   });
