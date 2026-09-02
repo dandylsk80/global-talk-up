@@ -2438,8 +2438,25 @@ function manifestJson() {
 /* ── SEO 엔드포인트 ─────────────────────────────────────── */
 const INDEXNOW_KEY = 'ed8128cdf2e741588641135eb5a1a584';
 
+/* ── sitemap lastmod ────────────────────────────────────────
+   URL 마다 다른 날짜를 주고 18일 주기로 갱신한다.
+   전 URL 을 매일 오늘로 찍으면 검색엔진이 신뢰하지 않는다(danmalgi 방식). */
+const SM_DAY = 86400000, SM_PERIOD = 18;
+function smHash(str){ let h=5381; const s=String(str); for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))>>>0; return h; }
+function smLastmod(key){
+  const off = smHash(key) % SM_PERIOD;
+  const periods = Math.floor((Date.now()/SM_DAY - off)/SM_PERIOD);
+  return new Date((periods*SM_PERIOD + off)*SM_DAY).toISOString().slice(0,10);
+}
+/* <loc> 뒤에 lastmod 가 없으면 채워 넣는다 (loc → lastmod → changefreq → priority 순서 유지) */
+function smAddLastmod(xml){
+  return String(xml).replace(/<loc>([^<]+)<\/loc>(?!<lastmod>)/g, function(m, l){
+    return "<loc>" + l + "</loc><lastmod>" + smLastmod(l) + "</lastmod>";
+  });
+}
 function xmlUrl(loc, pri, freq) {
-  return '<url><loc>' + SITE.origin + loc + '</loc><changefreq>' + (freq || 'weekly') +
+  const u = SITE.origin + loc;
+  return '<url><loc>' + u + '</loc><lastmod>' + smLastmod(u) + '</lastmod><changefreq>' + (freq || 'weekly') +
     '</changefreq><priority>' + pri + '</priority></url>';
 }
 
