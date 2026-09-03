@@ -1542,18 +1542,27 @@ ${LANGS.map(l => `<a href="/${l.s}">${l.ko}회화</a>`).join('')}
 <a href="/contact" class="f2" onclick="tk('form')">상담</a>
 </div>
 <script>
-var TKS={};
-function tk(a){if(TKS[a])return;TKS[a]=1;setTimeout(function(){TKS[a]=0;},1500);
-try{var d=JSON.stringify({e:a,p:location.pathname}),ok=false;
+var TKS={},TKW=90000;
+/* 같은 버튼 연타를 페이지 이동·새로고침 뒤에도 막는다 (예전 1.5초는 2~3초 간격 연타를 못 걸렀다) */
+function tkk(a){return 'tk_'+a+'_'+location.pathname;}
+function tkseen(a){var k=tkk(a),n=Date.now();if(TKS[k]&&n-TKS[k]<TKW)return 1;
+try{var v=sessionStorage.getItem(k);if(v&&n-(+v)<TKW)return 1;}catch(e){}return 0;}
+function tkmark(a){var k=tkk(a),n=Date.now();TKS[k]=n;try{sessionStorage.setItem(k,''+n);}catch(e){}}
+/* r = document.referrer. 서버가 Referer 헤더를 보면 항상 자기 사이트라 유입이 전부 '사이트 내부 이동' 이 된다. */
+function tksend(a,b){try{var d=JSON.stringify({e:a,p:location.pathname,r:document.referrer,b:b||''}),ok=false;
 if(navigator.sendBeacon){try{ok=navigator.sendBeacon('/api/track',new Blob([d],{type:'application/json'}));}catch(e){}}
 if(!ok){try{fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:d,keepalive:true}).catch(function(){});}catch(e){}}}catch(e){}}
+function tk(a,b){if(tkseen(a))return;tkmark(a);tksend(a,b);}
+function tkl(a){try{var s=(a.getAttribute&&a.getAttribute('aria-label'))||a.textContent||'';
+return s.replace(/\s+/g,' ').trim().slice(0,40);}catch(e){return '';}}
 /* onclick 이 빠진 전화·문자 링크도 놓치지 않도록 전역에서 한 번 더 잡는다.
    다이얼러로 전환되기 전에 나가야 해서 pointerdown 단계에서 먼저 보낸다. */
-function tkh(e){var a=e.target&&e.target.closest&&e.target.closest('a,button');if(!a)return;
-var v=(a.getAttribute&&a.getAttribute('href'))||'';
-if(v.indexOf('tel:')===0)tk('tel');else if(v.indexOf('sms:')===0)tk('sms');}
+function tkh(e){var a=e.target&&e.target.closest&&e.target.closest('a,button,[data-tk]');if(!a)return;
+var k=(a.getAttribute&&a.getAttribute('data-tk'))||'',v=(a.getAttribute&&a.getAttribute('href'))||'';
+if(!k&&!v&&a.closest){var p=a.closest('a[href]');if(p){a=p;v=p.getAttribute('href')||'';}}
+if(k==='tel'||v.indexOf('tel:')===0)tk('tel',tkl(a));else if(k==='sms'||v.indexOf('sms:')===0)tk('sms',tkl(a));}
 document.addEventListener('pointerdown',tkh,true);document.addEventListener('click',tkh,true);
-try{navigator.sendBeacon('/api/track',JSON.stringify({e:'view',p:location.pathname}))}catch(e){}
+tksend('view');
 <\/script>
 ${formScript()}
 </body></html>`;
@@ -2641,8 +2650,8 @@ function rssXml() {
 
 /* ── 텔레그램 알림 ──────────────────────────────────────── */
 const TG_LABEL = {
-  tel: '전화 버튼 클릭', sms: '문자 버튼 클릭', form: '상담 버튼 클릭',
-  cta: '상담 신청 버튼 클릭', contact: '상담 신청 접수'
+  tel: '전화 버튼 클릭', sms: '문자 버튼 클릭', form: '상담 페이지 열기',
+  cta: '상담 폼 열기', contact: '상담 신청 접수'
 };
 
 /* 경로에서 지역·언어·목적 해석 */
@@ -2707,7 +2716,7 @@ function kstNow() {
     ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes());
 }
 
-async function notifyTelegram(env, event, path, req) {
+async function notifyTelegram(env, event, path, req, ref, btn) {
   const TG_TOKEN = env && env.TG_TOKEN;
   const TG_CHAT = env && env.TG_CHAT;
   if (!TG_TOKEN || !TG_CHAT) return;
@@ -2727,10 +2736,11 @@ async function notifyTelegram(env, event, path, req) {
   lines.push('사이트: ' + SITE.name + ' (' + SITE.domain + ')');
   lines.push('주소: ' + SITE.origin + path);
   lines.push('페이지: ' + ko);
+  if (btn) lines.push('버튼: ' + btn);
   /* ref 에서 뽑은 진짜 검색어 — 없으면 줄 자체를 넣지 않는다 */
-  const __kw = tkKeyword(req.headers.get('referer') || '');
+  const __kw = tkKeyword(ref || '');
   if (__kw) lines.push('검색어: ' + __kw);
-  lines.push('유입: ' + refName(req.headers.get('referer')));
+  lines.push('유입: ' + refName(ref || ''));
   lines.push('기기: ' + mobile);
   lines.push('시각: ' + kstNow() + ' (KST)');
   {
@@ -2758,6 +2768,22 @@ async function notifyTelegram(env, event, path, req) {
 const BOT_RE = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|curl|wget|python|axios|headless|lighthouse|pagespeed|gptbot|claude|perplexity|yeti|daumoa|cs\.daum\.net|compatible;\s*daum\/|semrush|ahrefs|mj12|dotbot|petal|bytespider|applebot|amazonbot|monitor|uptime|scan/i;
 /* 통합 대시보드(allcarestudy)의 events 테이블에 기록 — site 키: globaltalkup */
 const TRACK_SITE = 'globaltalkup';
+/* ── 서버 측 연타 방어 ──────────────────────────────────────────
+   클라이언트 디바운스는 새 탭·시크릿창·브라우저 재시작으로 초기화된다.
+   같은 site+type+page+ip 가 TK_DUP_MS 안에 이미 기록돼 있으면 중복으로 보고 버린다.
+   조회가 실패하면 false 를 돌려 추적 자체는 절대 막지 않는다. */
+const TK_DUP_MS = 10 * 60 * 1000;
+async function tkDup(env, site, type, page, ip) {
+  if (!env || !env.DB || !ip || type === 'view') return false;
+  try {
+    const since = new Date(Date.now() - TK_DUP_MS).toISOString();
+    const row = await env.DB.prepare(
+      'SELECT 1 FROM events WHERE site=? AND type=? AND page=? AND ip=? AND ts>? LIMIT 1'
+    ).bind(site, type, page, ip, since).first();
+    return !!row;
+  } catch (e) { return false; }
+}
+
 /* 이 사이트 고유 이벤트명 → 대시보드 공통 타입 */
 const TRACK_TYPE = { view: 'view', tel: 'tel', sms: 'sms', form: 'contact', cta: 'contact', contact: 'contact' };
 
@@ -2765,18 +2791,22 @@ async function handleTrack(req, env, ctx) {
   try {
     const body = await req.json();
     const ua = req.headers.get('user-agent') || '';
+    /* 같은 방문자가 같은 버튼을 반복해 눌러도 1건만 기록·발송한다 */
+    if (await tkDup(env, TRACK_SITE, TRACK_TYPE[body.e], String(body.p || '').slice(0, 300), req.headers.get('CF-Connecting-IP') || '')) {
+      return new Response('{"ok":true,"dup":1}', { headers: { 'content-type': 'application/json' } });
+    }
     if (body.e === 'view' && (BOT_RE.test(ua) || skipViewCf(req, req.headers.get('CF-Connecting-IP') || ''))) return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
     if (TG_LABEL[body.e] && !BOT_RE.test(ua)) {
-      const p = notifyTelegram(env, body.e, String(body.p || '/').slice(0, 300), req);
+      const p = notifyTelegram(env, body.e, String(body.p || '/').slice(0, 300), req, String(body.r || ''), String(body.b || ''));
       if (ctx && ctx.waitUntil) ctx.waitUntil(p); else await p;
     }
     const ty = TRACK_TYPE[body.e];
     if (env && env.DB && ty) {
       await env.DB.prepare('INSERT INTO events (site,type,page,ref,ip,ts,ua,device,source,keyword) VALUES (?,?,?,?,?,?,?,?,?,?)')
         .bind(TRACK_SITE, ty, String(body.p || '').slice(0, 300),
-          (req.headers.get('referer') || '').slice(0, 120),
+          String(body.r || '').slice(0, 120),
           req.headers.get('CF-Connecting-IP') || '', new Date().toISOString(),
-          ...tkMeta(ua, req.headers.get('referer') || '', 'globaltalkup.com')).run();
+          ...tkMeta(ua, String(body.r || ''), 'globaltalkup.com')).run();
     }
   } catch (e) { /* 추적 실패는 무시 */ }
   return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
