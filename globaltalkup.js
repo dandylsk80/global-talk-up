@@ -1557,11 +1557,13 @@ function tkl(a){try{var s=(a.getAttribute&&a.getAttribute('aria-label'))||a.text
 return s.replace(/\s+/g,' ').trim().slice(0,40);}catch(e){return '';}}
 /* onclick 이 빠진 전화·문자 링크도 놓치지 않도록 전역에서 한 번 더 잡는다.
    다이얼러로 전환되기 전에 나가야 해서 pointerdown 단계에서 먼저 보낸다. */
-function tkh(e){var a=e.target&&e.target.closest&&e.target.closest('a,button,[data-tk]');if(!a)return;
+/* 인앱 브라우저는 tel:/sms: 를 무시해 아무 일도 안 일어난다 — intent: 로 재시도한다 */
+function W(v){try{if(!/; wv\)/.test(navigator.userAgent))return;var m=/^(tel|sms):\+?([0-9]+)/.exec(v);if(!m)return;var sc=m[1]==='tel'?'tel':'smsto',ac=m[1]==='tel'?'DIAL':'SENDTO',done=0;var f=function(){done=1;};document.addEventListener('visibilitychange',f,{once:true});window.addEventListener('pagehide',f,{once:true});setTimeout(function(){if(done||document.visibilityState!=='visible')return;location.href='intent://'+m[2]+'#Intent;scheme='+sc+';action=android.intent.action.'+ac+';end';},800);}catch(e){}}
+function tkh(e,early){var a=e.target&&e.target.closest&&e.target.closest('a,button,[data-tk]');if(!a)return;
 var k=(a.getAttribute&&a.getAttribute('data-tk'))||'',v=(a.getAttribute&&a.getAttribute('href'))||'';
 if(!k&&!v&&a.closest){var p=a.closest('a[href]');if(p){a=p;v=p.getAttribute('href')||'';}}
-if(k==='tel'||v.indexOf('tel:')===0)tk('tel',tkl(a));else if(k==='sms'||v.indexOf('sms:')===0)tk('sms',tkl(a));}
-document.addEventListener('pointerdown',tkh,true);document.addEventListener('click',tkh,true);
+if(k==='tel'||v.indexOf('tel:')===0){tk('tel',tkl(a));if(!early)W(v);}else if(k==='sms'||v.indexOf('sms:')===0){tk('sms',tkl(a));if(!early)W(v);}}
+document.addEventListener('pointerdown',function(e){tkh(e,1);},true);document.addEventListener('click',function(e){tkh(e,0);},true);
 tksend('view');
 <\/script>
 ${formScript()}
