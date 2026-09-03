@@ -2720,14 +2720,25 @@ async function notifyTelegram(env, event, path, req) {
   lines.push('유입: ' + refName(req.headers.get('referer')));
   lines.push('기기: ' + mobile);
   lines.push('시각: ' + kstNow() + ' (KST)');
-  try {
-    await fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendMessage', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+  {
+    /* 텔레그램 API 가 429/5xx 를 주는 경우가 있어 최대 3회 재시도한다.
+       실패는 조용히 삼키지 않고 로그로 남겨 wrangler tail 에서 확인할 수 있게 한다. */
+    const __body = JSON.stringify({
         chat_id: TG_CHAT, text: lines.join('\n'), disable_web_page_preview: true
-      })
-    });
-  } catch (e) { /* 알림 실패는 무시 */ }
+      });
+    for (let __i = 0; __i < 3; __i++) {
+      let __st = 0;
+      try {
+        const __r = await fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendMessage', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: __body
+        });
+        if (__r && __r.ok) return;
+        __st = __r ? __r.status : 0;
+      } catch (e) { __st = -1; }
+      console.log('tgNotify 실패 type=' + event + ' status=' + __st + ' try=' + (__i + 1));
+      if (__i < 2) await new Promise(function (s) { setTimeout(s, 400 * (__i + 1)); });
+    }
+  }
 }
 
 /* ── 봇 필터 ────────────────────────────────────────────── */
