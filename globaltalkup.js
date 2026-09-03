@@ -1542,7 +1542,17 @@ ${LANGS.map(l => `<a href="/${l.s}">${l.ko}회화</a>`).join('')}
 <a href="/contact" class="f2" onclick="tk('form')">상담</a>
 </div>
 <script>
-function tk(a){try{navigator.sendBeacon('/api/track',JSON.stringify({e:a,p:location.pathname}))}catch(e){}}
+var TKS={};
+function tk(a){if(TKS[a])return;TKS[a]=1;setTimeout(function(){TKS[a]=0;},1500);
+try{var d=JSON.stringify({e:a,p:location.pathname}),ok=false;
+if(navigator.sendBeacon){try{ok=navigator.sendBeacon('/api/track',new Blob([d],{type:'application/json'}));}catch(e){}}
+if(!ok){try{fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:d,keepalive:true}).catch(function(){});}catch(e){}}}catch(e){}}
+/* onclick 이 빠진 전화·문자 링크도 놓치지 않도록 전역에서 한 번 더 잡는다.
+   다이얼러로 전환되기 전에 나가야 해서 pointerdown 단계에서 먼저 보낸다. */
+function tkh(e){var a=e.target&&e.target.closest&&e.target.closest('a,button');if(!a)return;
+var v=(a.getAttribute&&a.getAttribute('href'))||'';
+if(v.indexOf('tel:')===0)tk('tel');else if(v.indexOf('sms:')===0)tk('sms');}
+document.addEventListener('pointerdown',tkh,true);document.addEventListener('click',tkh,true);
 try{navigator.sendBeacon('/api/track',JSON.stringify({e:'view',p:location.pathname}))}catch(e){}
 <\/script>
 ${formScript()}
