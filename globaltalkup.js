@@ -1542,7 +1542,7 @@ ${LANGS.map(l => `<a href="/${l.s}">${l.ko}회화</a>`).join('')}
 <a href="/contact" class="f2" onclick="tk('form')">상담</a>
 </div>
 <script>
-var TKS={},TKW=90000;
+var TKS={},TKW=30000;
 /* 같은 버튼 연타를 페이지 이동·새로고침 뒤에도 막는다 (예전 1.5초는 2~3초 간격 연타를 못 걸렀다) */
 function tkk(a){return 'tk_'+a+'_'+location.pathname;}
 function tkseen(a){var k=tkk(a),n=Date.now();if(TKS[k]&&n-TKS[k]<TKW)return 1;
@@ -1554,15 +1554,19 @@ if(navigator.sendBeacon){try{ok=navigator.sendBeacon('/api/track',new Blob([d],{
 if(!ok){try{fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:d,keepalive:true}).catch(function(){});}catch(e){}}}catch(e){}}
 function tk(a,b){if(tkseen(a))return;tkmark(a);tksend(a,b);}
 function tkl(a){try{var s=(a.getAttribute&&a.getAttribute('aria-label'))||a.textContent||'';
-return s.replace(/\s+/g,' ').trim().slice(0,40);}catch(e){return '';}}
+var o='',sp=0,i,ch;
+for(i=0;i<s.length;i++){ch=s.charCodeAt(i);
+if(ch===32||ch===9||ch===10||ch===13){if(!sp){o+=' ';sp=1;}}
+else{o+=s.charAt(i);sp=0;}}
+return o.trim().slice(0,40);}catch(e){return '';}}
 /* onclick 이 빠진 전화·문자 링크도 놓치지 않도록 전역에서 한 번 더 잡는다.
    다이얼러로 전환되기 전에 나가야 해서 pointerdown 단계에서 먼저 보낸다. */
 /* 인앱 브라우저는 tel:/sms: 를 무시해 아무 일도 안 일어난다 — intent: 로 재시도한다 */
-function W(v){try{if(!/; wv\)/.test(navigator.userAgent))return;var m=/^(tel|sms):\+?([0-9]+)/.exec(v);if(!m)return;var sc=m[1]==='tel'?'tel':'smsto',ac=m[1]==='tel'?'DIAL':'SENDTO',done=0;var f=function(){done=1;};document.addEventListener('visibilitychange',f,{once:true});window.addEventListener('pagehide',f,{once:true});setTimeout(function(){if(done||document.visibilityState!=='visible')return;location.href='intent://'+m[2]+'#Intent;scheme='+sc+';action=android.intent.action.'+ac+';end';},800);}catch(e){}}
+function WV(v){try{if(navigator.userAgent.indexOf("; wv)")<0)return;var i=v.indexOf(":");if(i<0)return;var sch=v.slice(0,i),num="",j,ch;if(sch!=="tel"&&sch!=="sms")return;for(j=i+1;j<v.length;j++){ch=v.charCodeAt(j);if(ch>=48&&ch<=57)num+=v.charAt(j);}if(!num)return;var sc=sch==="tel"?"tel":"smsto",ac=sch==="tel"?"DIAL":"SENDTO",done=0;var f=function(){done=1;};document.addEventListener("visibilitychange",f,{once:true});window.addEventListener("pagehide",f,{once:true});setTimeout(function(){if(done||document.visibilityState!=="visible")return;location.href="intent://"+num+"#Intent;scheme="+sc+";action=android.intent.action."+ac+";end";},800);}catch(e){}}
 function tkh(e,early){var a=e.target&&e.target.closest&&e.target.closest('a,button,[data-tk]');if(!a)return;
 var k=(a.getAttribute&&a.getAttribute('data-tk'))||'',v=(a.getAttribute&&a.getAttribute('href'))||'';
 if(!k&&!v&&a.closest){var p=a.closest('a[href]');if(p){a=p;v=p.getAttribute('href')||'';}}
-if(k==='tel'||v.indexOf('tel:')===0){tk('tel',tkl(a));if(!early)W(v);}else if(k==='sms'||v.indexOf('sms:')===0){tk('sms',tkl(a));if(!early)W(v);}}
+if(k==='tel'||v.indexOf('tel:')===0){tk('tel',tkl(a));if(!early)WV(v);}else if(k==='sms'||v.indexOf('sms:')===0){tk('sms',tkl(a));if(!early)WV(v);}}
 document.addEventListener('pointerdown',function(e){tkh(e,1);},true);document.addEventListener('click',function(e){tkh(e,0);},true);
 tksend('view');
 <\/script>
@@ -2774,7 +2778,7 @@ const TRACK_SITE = 'globaltalkup';
    클라이언트 디바운스는 새 탭·시크릿창·브라우저 재시작으로 초기화된다.
    같은 site+type+page+ip 가 TK_DUP_MS 안에 이미 기록돼 있으면 중복으로 보고 버린다.
    조회가 실패하면 false 를 돌려 추적 자체는 절대 막지 않는다. */
-const TK_DUP_MS = 10 * 60 * 1000;
+const TK_DUP_MS = 2 * 60 * 1000;   /* 실측: 연타 간격 중앙 5초·최대 57초. 10분은 공유 IP(CGNAT) 오탐만 키웠다 */
 async function tkDup(env, site, type, page, ip) {
   if (!env || !env.DB || !ip || type === 'view') return false;
   try {
@@ -2782,6 +2786,7 @@ async function tkDup(env, site, type, page, ip) {
     const row = await env.DB.prepare(
       'SELECT 1 FROM events WHERE site=? AND type=? AND page=? AND ip=? AND ts>? LIMIT 1'
     ).bind(site, type, page, ip, since).first();
+    if (row) console.log('tkDup 차단 site=' + site + ' type=' + type + ' ip=' + ip + ' page=' + page);
     return !!row;
   } catch (e) { return false; }
 }
