@@ -2725,8 +2725,11 @@ async function notifyTelegram(env, event, path, req) {
   lines.push((event === 'tel' ? '📞 ' : '📝 ') + label);
   lines.push('');
   lines.push('사이트: ' + SITE.name + ' (' + SITE.domain + ')');
-  lines.push('페이지: ' + SITE.origin + path);
-  lines.push('검색 키워드: ' + ko);
+  lines.push('주소: ' + SITE.origin + path);
+  lines.push('페이지: ' + ko);
+  /* ref 에서 뽑은 진짜 검색어 — 없으면 줄 자체를 넣지 않는다 */
+  const __kw = tkKeyword(req.headers.get('referer') || '');
+  if (__kw) lines.push('검색어: ' + __kw);
   lines.push('유입: ' + refName(req.headers.get('referer')));
   lines.push('기기: ' + mobile);
   lines.push('시각: ' + kstNow() + ' (KST)');
