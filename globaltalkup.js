@@ -2540,6 +2540,7 @@ const AI_BOTS = [
   'CCBot', 'cohere-ai', 'DuckAssistBot', 'YouBot', 'Diffbot',
   'Timpibot', 'MistralAI-User', 'AI2Bot', 'Kangaroo Bot', 'omgili', 'Webzio-Extended'
 ];
+const BLOCK_BOTS = ['SemrushBot', 'AhrefsBot', 'AhrefsSiteAudit', 'MJ12bot', 'DotBot', 'DataForSeoBot', 'BLEXBot', 'rogerbot', 'SEOkicks', 'Barkrowler', 'serpstatbot'];
 const SEARCH_BOTS = ['Googlebot', 'Googlebot-Image', 'bingbot', 'Yeti', 'Yeti-Mobile', 'Daumoa', 'NaverBot', 'DuckDuckBot'];
 
 function robotsTxt() {
@@ -2547,7 +2548,9 @@ function robotsTxt() {
   L.push('# 검색엔진 크롤러');
   for (const b of SEARCH_BOTS) L.push('User-agent: ' + b, 'Allow: /', '');
   L.push('# AI 검색·학습 크롤러 — 인용을 위해 전체 허용');
-  for (const b of AI_BOTS) L.push('User-agent: ' + b, 'Allow: /', '');
+  for (const b of AI_BOTS) { L.push('User-agent: ' + b, 'Allow: /'); if (b === 'GPTBot') L.push('Crawl-delay: 10'); L.push(''); }
+  L.push('# SEO 분석 크롤러 — 색인에 도움 안 되므로 차단');
+  for (const b of BLOCK_BOTS) L.push('User-agent: ' + b, 'Disallow: /', '');
   L.push('# 전체 목록: ' + SITE.origin + '/list');
   L.push('# llms.txt: ' + SITE.origin + '/llms.txt');
   L.push('Llms-txt: ' + SITE.origin + '/llms.txt');
