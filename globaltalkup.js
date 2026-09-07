@@ -109,12 +109,16 @@ function isCloudIp(ip){
     if (n >= CLOUD_RANGES[i][0] && n <= CLOUD_RANGES[i][1]) return true;
   return false;
 }
-/* ── 데이터센터 ASN · 국가 판정 (view 집계 제외용) ──────────
+/* ── 데이터센터 ASN 판정 (view 집계 제외용) ──────────
    Cloudflare 가 채워주는 request.cf 로 판정한다. 기존 IP 목록(isCloudIp)은
    그대로 두고 그 위에 얹는다.
    request.cf 는 로컬 실행·테스트에서 undefined 이므로 "모르면 기록한다"를
    기본값으로 둔다(모를 때 제외하면 집계가 통째로 비어버린다).
-   view 에만 적용하고 tel/sms/contact 는 어떤 경우에도 기록한다. */
+   view 에만 적용하고 tel/sms/contact 는 어떤 경우에도 기록한다.
+
+   ★ 이 사이트는 해외 대상이라 국가 필터를 쓰지 않는다. 다른 12개 사이트의
+     skipViewCf 에는 cc !== "KR" 제외 조건이 있지만 여기에는 없다.
+     워커를 동기화할 때 그 줄을 다시 가져오지 말 것. */
 const DC_ORG_RE = /amazon|aws\b|google|microsoft|azure|oracle|tencent|alibaba|aliyun|baidu|huawei|bytedance|volcengine|ucloud|kingsoft|digitalocean|linode|vultr|choopa|\bovh\b|hetzner|contabo|scaleway|leaseweb|m247|datacamp|zenlayer|hostwinds|ionos|colo|data\s?cent|hosting|cloud|\bvps\b|\bidc\b|dedicated server/i;
 const DC_ASNS = [16509,14618,16550,8987,      /* Amazon */
   15169,396982,19527,                          /* Google */
@@ -136,8 +140,7 @@ function skipViewCf(request, ip){
   if (org && DC_ORG_RE.test(org)) return true;
   const asn = Number(cf.asn || 0);
   if (asn && DC_ASNS.indexOf(asn) >= 0) return true;
-  const cc = String(cf.country || "");
-  if (cc && cc !== "KR") return true;             /* 국내가 아니면 방문 집계 제외 */
+  /* 국가 필터 없음 — 해외 방문자도 view 로 집계한다 (위 ★ 주석 참고) */
   return false;
 }
 function tkMeta(ua, ref, selfHost){
