@@ -43,7 +43,37 @@ function tkDevice(ua){
   if(/mobile|iphone|ipod|android|blackberry|iemobile|opera mini|webos/i.test(ua)) return "mobile";
   return "pc";
 }
-function tkSource(ref, selfHost){
+/* ===== 생성형 AI 유입 판별 =====
+   ref(리퍼러 호스트) 또는 utm_source/ref 쿼리값에 AI 서비스가 있으면
+   source 를 'ai' 로, 세부 서비스명은 keyword 자리에 넣는다. */
+const AI_SRC = [
+  ["chatgpt", "ChatGPT"], ["openai", "ChatGPT"],
+  ["perplexity", "Perplexity"], ["gemini", "Gemini"],
+  ["claude.ai", "Claude"], ["claude", "Claude"],
+  ["copilot", "Copilot"]
+];
+function aiName(v){
+  if(!v) return "";
+  v = String(v).toLowerCase();
+  for(var i=0;i<AI_SRC.length;i++){ if(v.indexOf(AI_SRC[i][0]) >= 0) return AI_SRC[i][1]; }
+  return "";
+}
+/* qs 는 랜딩 URL 의 쿼리스트링(location.search). 비콘이 함께 보낸다. */
+function tkAi(ref, qs){
+  if(qs){
+    try{
+      var p = new URLSearchParams(String(qs));
+      var n = aiName(p.get("utm_source") || "") || aiName(p.get("ref") || "");
+      if(n) return n;
+    }catch(e){}
+  }
+  if(ref){
+    try{ return aiName(new URL(ref).hostname); }catch(e){}
+  }
+  return "";
+}
+function tkSource(ref, selfHost, qs){
+  if(tkAi(ref, qs)) return "ai";
   if(!ref) return "direct";
   var h = "";
   try{ h = new URL(ref).hostname.toLowerCase(); }catch(e){ return "etc"; }
@@ -54,7 +84,9 @@ function tkSource(ref, selfHost){
   if(h.indexOf("daum") >= 0 || h.indexOf("kakao") >= 0) return "daum";
   return "etc";
 }
-function tkKeyword(ref){
+function tkKeyword(ref, qs){
+  var __ai = tkAi(ref, qs);
+  if(__ai) return __ai;
   if(!ref) return "";
   try{
     var p = new URL(ref).searchParams;
@@ -143,8 +175,8 @@ function skipViewCf(request, ip){
   /* 국가 필터 없음 — 해외 방문자도 view 로 집계한다 (위 ★ 주석 참고) */
   return false;
 }
-function tkMeta(ua, ref, selfHost){
-  return [ (ua||"").slice(0,250), tkDevice(ua), tkSource(ref, selfHost), tkKeyword(ref) ];
+function tkMeta(ua, ref, selfHost, qs){
+  return [ (ua||"").slice(0,250), tkDevice(ua), tkSource(ref, selfHost, qs), tkKeyword(ref, qs) ];
 }
 
 /* IndexNow 폴백: api.indexnow.org / www.bing.com 은 Cloudflare Workers 의 공용
@@ -1552,7 +1584,7 @@ function tkseen(a){var k=tkk(a),n=Date.now();if(TKS[k]&&n-TKS[k]<TKW)return 1;
 try{var v=sessionStorage.getItem(k);if(v&&n-(+v)<TKW)return 1;}catch(e){}return 0;}
 function tkmark(a){var k=tkk(a),n=Date.now();TKS[k]=n;try{sessionStorage.setItem(k,''+n);}catch(e){}}
 /* r = document.referrer. 서버가 Referer 헤더를 보면 항상 자기 사이트라 유입이 전부 '사이트 내부 이동' 이 된다. */
-function tksend(a,b){try{var d=JSON.stringify({e:a,p:location.pathname,r:document.referrer,b:b||''}),ok=false;
+function tksend(a,b){try{var d=JSON.stringify({e:a,p:location.pathname,r:document.referrer,q:location.search,b:b||''}),ok=false;
 if(navigator.sendBeacon){try{ok=navigator.sendBeacon('/api/track',new Blob([d],{type:'application/json'}));}catch(e){}}
 if(!ok){try{fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:d,keepalive:true}).catch(function(){});}catch(e){}}}catch(e){}}
 function tk(a,b){if(tkseen(a))return;tkmark(a);tksend(a,b);}
@@ -1629,7 +1661,7 @@ function formScript() {
 'address:addr+" "+addr2,message:msg,page:location.pathname})})' +
 '.then(function(r){return r.json()}).then(function(d){' +
 'if(d.ok){showMsg("상담 신청이 접수되었습니다. 빠르게 연락드리겠습니다.",true);' +
-'try{navigator.sendBeacon("/api/track",JSON.stringify({e:"contact",p:location.pathname}))}catch(e){}' +
+'try{navigator.sendBeacon("/api/track",JSON.stringify({e:"contact",p:location.pathname,q:location.search}))}catch(e){}' +
 'document.getElementById("c-name").value="";document.getElementById("c-phone").value="";' +
 'document.getElementById("c-addr").value="";document.getElementById("c-addr2").value="";' +
 'document.getElementById("c-msg").value="";}' +
@@ -2819,7 +2851,7 @@ async function handleTrack(req, env, ctx) {
         .bind(TRACK_SITE, ty, String(body.p || '').slice(0, 300),
           String(body.r || '').slice(0, 120),
           req.headers.get('CF-Connecting-IP') || '', new Date().toISOString(),
-          ...tkMeta(ua, String(body.r || ''), 'globaltalkup.com')).run();
+          ...tkMeta(ua, String(body.r || ''), 'globaltalkup.com', body.q||"")).run();
     }
   } catch (e) { /* 추적 실패는 무시 */ }
   return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
