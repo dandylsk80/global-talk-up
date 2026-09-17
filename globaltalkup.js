@@ -1550,7 +1550,7 @@ function layout(o) {
 <a href="/" class="logo" aria-label="글로벌톡업 홈">${logoMark(30)}${wordGlobal(23)}<span class="tu">TalkUp</span></a>
 <nav class="nav">
 ${LANGS.map(l => `<a href="/${l.s}"${o.lang === l.s ? ' class="on"' : ''}>${l.ko}회화</a>`).join('')}
-<a href="/all-areas">지역별</a><a href="/list">전체 목록</a><a href="/about">소개</a><a href="/contact">상담문의</a>
+<a href="/post/">회화 정보</a><a href="/all-areas">지역별</a><a href="/list">전체 목록</a><a href="/about">소개</a><a href="/contact">상담문의</a>
 </nav>
 <a href="/contact" class="hcta">무료 상담</a>
 </div></header>
@@ -1565,7 +1565,7 @@ ${contactForm(o.formCtx || {})}
 <a href="/" class="flogo">${logoMark(24, true)}${wordGlobal(19, true)}<span class="tu">TalkUp</span></a>
 <nav class="flinks">
 ${LANGS.map(l => `<a href="/${l.s}">${l.ko}회화</a>`).join('')}
-<a href="/all-areas">지역별</a><a href="/list">전체 목록</a><a href="/about">소개</a><a href="/contact">상담문의</a>
+<a href="/post/">회화 정보</a><a href="/all-areas">지역별</a><a href="/list">전체 목록</a><a href="/about">소개</a><a href="/contact">상담문의</a>
 </nav>
 <a href="tel:${SITE.telRaw}" class="ftel">${SITE.tel}</a>
 </div>
@@ -2539,7 +2539,7 @@ function sitemapIndex() {
 }
 
 function sitemapCore() {
-  let u = xmlUrl('/', '1.0', 'daily') + xmlUrl('/list', '0.7') + xmlUrl('/about', '0.5') + xmlUrl('/contact', '0.8') + xmlUrl('/all-areas', '0.6');
+  let u = postSitemapXml() + xmlUrl('/', '1.0', 'daily') + xmlUrl('/list', '0.7') + xmlUrl('/about', '0.5') + xmlUrl('/contact', '0.8') + xmlUrl('/all-areas', '0.6');
   const totalPages = Math.ceil(dongCount() / 400);
   for (let i = 2; i <= totalPages; i++) u += xmlUrl('/all-areas?page=' + i, '0.3');
   for (const l of LANGS) {
@@ -2670,6 +2670,121 @@ function atomXml() {
     '</feed>';
 }
 
+
+/* ===================== 정보성 글 (/post) =====================
+   글은 공용 D1 posts 테이블에 있고 이 사이트는 자기 글(published)만 읽는다.
+   발행 전환은 allcarestudy 워커의 크론 한 곳에서만 한다.
+
+   목록은 메모리에 5분 캐시한다 — 사이트맵·RSS·목록이 매 요청 D1 을 치면
+   응답이 느려지고 D1 읽기도 낭비된다. 본문은 상세 요청에서만 읽는다.
+   사이트맵·RSS 생성 함수는 동기라 인자로 넘기지 않고 이 캐시를 직접 읽는다.
+   (라우터가 응답을 만들기 직전 await loadPosts(env) 로 채워 준다) */
+const POST_SITE = "globaltalkup";
+const POST_ORIGIN = SITE.origin;
+const POST_TTL = 300000;
+let POSTS_CACHE = { at: 0, rows: [] };
+async function loadPosts(env) {
+  if (Date.now() - POSTS_CACHE.at < POST_TTL) return POSTS_CACHE.rows;
+  if (!env || !env.DB) return POSTS_CACHE.rows;
+  try {
+    const r = await env.DB.prepare(
+      "SELECT slug,title,summary,published_at FROM posts WHERE site=? AND status='published' ORDER BY published_at DESC LIMIT 200"
+    ).bind(POST_SITE).all();
+    POSTS_CACHE = { at: Date.now(), rows: r.results || [] };
+  } catch (e) { POSTS_CACHE = { at: Date.now(), rows: POSTS_CACHE.rows }; }
+  return POSTS_CACHE.rows;
+}
+async function getPost(env, slug) {
+  if (!env || !env.DB) return null;
+  try {
+    return await env.DB.prepare(
+      "SELECT slug,title,summary,body_html,published_at FROM posts WHERE site=? AND slug=? AND status='published'"
+    ).bind(POST_SITE, slug).first();
+  } catch (e) { return null; }
+}
+const postEsc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const postDate = (p) => String((p && p.published_at) || "").slice(0, 10);
+
+/* 목록·상세 본문 — 사이트 CSS 에 의존하지 않도록 인라인 스타일만 쓴다.
+   바깥 컨테이너만 그 사이트의 클래스를 그대로 빌린다(고정 헤더 여백 때문). */
+function postCards(posts) {
+  if (!posts.length) return '<p style="color:#666">아직 등록된 글이 없습니다.</p>';
+  return posts.map((p) =>
+    '<a href="/post/' + postEsc(p.slug) + '/" style="display:block;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:20px 22px;margin-bottom:12px">'
+    + '<div style="font-size:17px;font-weight:800;line-height:1.4">' + postEsc(p.title) + '</div>'
+    + '<p style="font-size:14px;color:#555;line-height:1.7;margin:8px 0 0">' + postEsc(p.summary || "") + '</p>'
+    + '<div style="font-size:12px;color:#999;margin-top:8px">' + postEsc(postDate(p)) + '</div></a>').join("");
+}
+function postArticle(p) {
+  return '<div style="font-size:12px;color:#999;margin-bottom:18px">' + postEsc(postDate(p)) + ' · 글로벌톡업</div>'
+    + '<div class="post-body" style="font-size:15px;line-height:1.85;color:#333">' + p.body_html + '</div>'
+    + '<style>.post-body h2{font-size:19px;font-weight:800;line-height:1.4;margin:32px 0 12px;color:#111}'
+    + '.post-body h3{font-size:16px;font-weight:700;margin:22px 0 8px;color:#111}'
+    + '.post-body p{margin:0 0 14px}</style>';
+}
+
+/* 사이트맵·RSS 조각 — lastmod·pubDate 는 실제 발행일을 쓴다
+   (지역 페이지처럼 해시로 돌리면 글의 신선도 신호가 사라진다) */
+function postSitemapXml() {
+  const ps = POSTS_CACHE.rows || [];
+  const top = ps.length ? postDate(ps[0]) : new Date().toISOString().slice(0, 10);
+  return '<url><loc>' + POST_ORIGIN + '/post/</loc><lastmod>' + top + '</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>'
+    + ps.map((p) => '<url><loc>' + POST_ORIGIN + '/post/' + p.slug + '/</loc><lastmod>' + postDate(p)
+      + '</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>').join("");
+}
+function postRssXml() {
+  return (POSTS_CACHE.rows || []).map((p) => {
+    const dt = p.published_at ? new Date(p.published_at) : new Date();
+    const u = POST_ORIGIN + '/post/' + postEsc(p.slug) + '/';
+    return '<item><title>' + postEsc(p.title) + '</title><link>' + u + '</link>'
+      + '<guid isPermaLink="true">' + u + '</guid><pubDate>' + dt.toUTCString() + '</pubDate>'
+      + '<description>' + postEsc(p.summary || p.title) + '</description></item>';
+  }).join("");
+}
+/* 캐시 무효화 토큰 — 사이트맵을 Cache API 에 넣는 사이트는 키에 이 값을 붙인다.
+   글이 늘거나 새로 발행되면 값이 바뀌어 하루짜리 캐시를 기다리지 않아도 된다. */
+function postVer() {
+  const ps = POSTS_CACHE.rows || [];
+  return ps.length ? ps.length + "-" + postDate(ps[0]) : "0";
+}
+/* IndexNow — 최근 7일 안에 발행된 글은 배치 앞에 실어 색인을 앞당긴다 */
+function postFreshUrls() {
+  const fresh = (POSTS_CACHE.rows || [])
+    .filter((p) => p.published_at && Date.now() - Date.parse(p.published_at) < 7 * 86400000)
+    .map((p) => POST_ORIGIN + '/post/' + p.slug + '/');
+  return fresh.length ? fresh.concat([POST_ORIGIN + '/post/']) : [];
+}
+
+function pagePostList(posts) {
+  const body = `<section class="sec"><div class="wrap">
+<nav class="crumb"><a href="/">홈</a> › <span>회화 정보</span></nav>
+<h1>회화 정보</h1>
+<p class="lead">회화 과외를 시작하고 이어 가는 데 도움이 되는 글을 한 편씩 올립니다. 수업 방식 고르는 법, 주당 횟수, 시험 대비 준비를 다룹니다.</p>
+${postCards(posts)}
+</div></section>`;
+  return layout({ title: '회화 정보 | ' + SITE.name,
+    desc: '영어·중국어·일본어 회화 과외를 준비하는 데 필요한 정보를 정리했습니다. 수업 방식, 주당 횟수, 시험 대비까지 ' + SITE.name + '이 한 편씩 올리는 회화 학습 안내입니다.',
+    kw: '회화 과외 정보,화상 영어,전화 회화,회화 과외 준비', path: '/post/', ogKey: 'home', body,
+    ld: [{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: '회화 정보',
+           url: SITE.origin + '/post/', isPartOf: { '@type': 'WebSite', name: SITE.name, url: SITE.origin } }] });
+}
+function pagePost(p) {
+  const u = SITE.origin + '/post/' + p.slug + '/';
+  const body = `<section class="sec"><div class="wrap">
+<nav class="crumb"><a href="/">홈</a> › <a href="/post/">회화 정보</a> › <span>${postEsc(p.title)}</span></nav>
+<h1>${postEsc(p.title)}</h1>
+${postArticle(p)}
+<p style="margin-top:26px"><a href="/post/">회화 정보 전체 보기</a> · <a href="/list">전체 목록</a> · <a href="/contact">무료 상담</a></p>
+</div></section>`;
+  return layout({ title: p.title + ' | ' + SITE.name, desc: (p.summary || p.title),
+    kw: '회화 과외 정보', path: '/post/' + p.slug + '/', ogKey: 'home', body,
+    ld: [{ '@context': 'https://schema.org', '@type': 'BlogPosting', headline: p.title, url: u,
+           datePublished: p.published_at || undefined, dateModified: p.published_at || undefined,
+           inLanguage: 'ko', author: { '@type': 'Organization', name: SITE.name },
+           publisher: { '@type': 'Organization', name: SITE.name, url: SITE.origin } }] });
+}
+
 function rssXml() {
   /* 최근 항목 위주로 매일 회전 */
   /* 기본 항목(56개)만으로는 피드 크기와 같아 회전이 안 된다.
@@ -2686,6 +2801,7 @@ function rssXml() {
     '<title>' + SITE.name + '</title><link>' + SITE.origin + '</link>' +
     '<description>' + esc(SITE.desc) + '</description><language>ko</language><lastBuildDate>' + now + '</lastBuildDate>' +
     '<atom:link xmlns:atom="http://www.w3.org/2005/Atom" href="' + SITE.origin + '/rss.xml" rel="self" type="application/rss+xml"/>' +
+    postRssXml() +
     items.map(i => '<item><title>' + esc(i[0]) + '</title><link>' + SITE.origin + i[1] + '</link>' +
       '<guid>' + SITE.origin + i[1] + '</guid><description>' + esc(i[2]) + '</description>' +
       '<pubDate>' + now + '</pubDate></item>').join('') +
@@ -2904,6 +3020,8 @@ async function route(req, env, ctx) {
   if (path === '/api/contact') return handleContact(req);
   if (path === '/api/track') return handleTrack(req, env, ctx);
 
+  /* 사이트맵·RSS 생성 함수는 동기라 POSTS_CACHE 를 먼저 채워 준다 */
+  if (path.startsWith('/sitemap') || path === '/rss.xml' || path === '/atom.xml') await loadPosts(env);
   if (path === '/robots.txt') return txt(robotsTxt());
   if (path === '/llms.txt') return txt(llmsTxt());
   if (path === '/llms-full.txt') return txt(llmsFullTxt());
@@ -2931,6 +3049,18 @@ async function route(req, env, ctx) {
   if (path === '/contact') return html(pageContact());
   if (path === '/list') return html(pageList());
   if (path === '/all-areas') return html(pageAllAreas(parseInt(url.searchParams.get('page') || '1', 10) || 1));
+
+  /* 정보성 글 — 언어 슬러그 판정보다 앞에 둔다. 주소는 /post/ 하나로 모은다 */
+  if (path === '/post' || path.startsWith('/post/')) {
+    if (!url.pathname.endsWith('/')) return redir(path + '/' + url.search);
+    if (path === '/post') return html(pagePostList(await loadPosts(env)));
+    const slug = path.slice(6);
+    if (slug && slug.indexOf('/') < 0) {
+      const po = await getPost(env, slug);
+      if (po) return html(pagePost(po));
+    }
+    return html(page404(), 404);
+  }
 
   const seg = path.split('/').filter(Boolean);
   const lang = LANG_BY[seg[0]];
@@ -2980,7 +3110,8 @@ async function indexNowPush(hour) {
   const SIZE = 9000;
   const chunks = Math.ceil(all.length / SIZE);
   const idx = hour % chunks;
-  const urlList = all.slice(idx * SIZE, (idx + 1) * SIZE);
+  /* 최근 7일 안에 발행된 글은 시간 분할과 무관하게 매번 앞에 싣는다 */
+  const urlList = postFreshUrls().concat(all.slice(idx * SIZE, (idx + 1) * SIZE));
   const body = JSON.stringify({ host: SITE.domain, key: INDEXNOW_KEY,
     keyLocation: SITE.origin + '/' + INDEXNOW_KEY + '.txt', urlList });
   const opt = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body };
@@ -3017,6 +3148,7 @@ export default {
     catch (e) { return new Response('Error: ' + e.message, { status: 500 }); }
   },
   async scheduled(event, env, ctx) {
+    try { POSTS_CACHE.at = 0; await loadPosts(env); } catch (e) {}
     const hour = Math.floor(Date.now() / 3600000);
     ctx.waitUntil(indexNowPush(hour));
   }
