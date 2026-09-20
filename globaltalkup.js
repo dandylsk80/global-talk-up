@@ -1496,6 +1496,8 @@ footer a:hover{color:#fff}
 .fab a{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;
 color:#fff;font-weight:800;font-size:12.5px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
 .fab .f1{background:var(--ac)}.fab .f3{background:#00A86B}.fab .f2{background:var(--p)}
+/* 모바일: 하단 우측은 브라우저 툴바·홈 인디케이터·스크롤 동선과 겹쳐 오터치가 난다 → 화면 세로 중앙 우측으로 */
+@media(max-width:768px){.fab{top:50%;bottom:auto;transform:translateY(-50%);gap:12px}}
 @media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}.flinks{gap:12px}}
 @media(max-width:640px){
 .hero{padding:40px 0 38px}.hero h1{font-size:27px}.hero p.sub{font-size:15.5px}
