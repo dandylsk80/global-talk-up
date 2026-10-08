@@ -2299,7 +2299,7 @@ function pageHome() {
 <a class="btn b1" href="#contact" onclick="tk('cta')">무료 상담 신청</a>
 </div></div></section>`;
   return layout({
-    title: `${SITE.name} | 영어·중국어·일본어 회화 과외 전국 매칭`,
+    title: `영어·중국어·일본어 회화 과외 전국 매칭 | ${SITE.name}`,
     desc: SITE.desc + ` 전국 ${nd.toLocaleString()}개 읍면동, 목적별 12가지 과정.`,
     kw: '영어회화 과외, 중국어회화 과외, 일본어회화 과외, 원어민 과외, 화상 회화',
     path: '/', ogKey: 'home', body,
@@ -2334,7 +2334,7 @@ function pageLang(lang) {
 <h2>${lang.ko}, 어디서 시작할까요</h2><p>지역과 목적만 알려주시면 맞는 선생님을 찾아드립니다.</p>
 <a class="btn b1" href="#contact" onclick="tk('cta')">무료 상담 신청</a></div></div></section>`;
   return layout({
-    title: `${lang.ko} 회화 과외 | 목적별 1:1 매칭 - ${SITE.name}`,
+    title: `${lang.ko} 회화 과외 — 목적별 1:1 매칭 | ${SITE.name}`,
     desc: c.desc, kw: `${lang.ko}회화, ${lang.ko}과외, ${lang.ko} 원어민 과외, ${lang.exams.join(', ')}`,
     path: '/' + lang.s, lang: lang.s, ogKey: lang.s, body,
     formCtx: { lang: lang.s },
