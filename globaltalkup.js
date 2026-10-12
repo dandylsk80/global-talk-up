@@ -1498,6 +1498,12 @@ color:#fff;font-weight:800;font-size:12.5px;box-shadow:0 6px 18px rgba(0,0,0,.2)
 .fab .f1{background:var(--ac)}.fab .f3{background:#00A86B}.fab .f2{background:var(--p)}
 /* 모바일: 하단 우측은 브라우저 툴바·홈 인디케이터·스크롤 동선과 겹쳐 오터치가 난다 → 화면 세로 중앙 우측으로 */
 @media(max-width:768px){.fab{top:50%;bottom:auto;transform:translateY(-50%);gap:12px}}
+/* PC(769px~)는 전화를 걸 수 없으니 tel: 버튼을 숨기고 번호를 일반 텍스트로 보인다. 모바일은 그대로 */
+.telt{display:none}
+@media(min-width:769px){a[href^="tel:"]{display:none!important}.fab{align-items:flex-end}.telt{display:inline-flex;align-items:center}
+.fabt{background:#0B1B3F;color:#fff;font-weight:700;font-size:13px;padding:7px 12px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.2);white-space:nowrap}
+.htel{color:#fff;font-weight:700;font-size:16px;padding:14px 4px}
+.ptel{margin-top:16px;font-weight:700;font-size:15px;position:relative;z-index:1}}
 @media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}.flinks{gap:12px}}
 @media(max-width:640px){
 .hero{padding:40px 0 38px}.hero h1{font-size:27px}.hero p.sub{font-size:15.5px}
@@ -1570,11 +1576,12 @@ ${contactForm(o.formCtx || {})}
 ${LANGS.map(l => `<a href="/${l.s}">${l.ko}회화</a>`).join('')}
 <a href="/post/">회화 정보</a><a href="/all-areas">지역별</a><a href="/list">전체 목록</a><a href="/about">소개</a><a href="/contact">상담문의</a>
 </nav>
-<a href="tel:${SITE.telRaw}" class="ftel">${SITE.tel}</a>
+<a href="tel:${SITE.telRaw}" class="ftel">${SITE.tel}</a><span class="ftel telt">${SITE.tel}</span>
 </div>
 <div class="fbtm">© ${new Date().getFullYear()} ${SITE.nameEn} · 영어·중국어·일본어 화상·전화 회화 과외</div>
 </div></footer>
 <div class="fab">
+<span class="telt fabt">${SITE.tel}</span>
 <a href="tel:${SITE.telRaw}" class="f1" onclick="tk('tel')">전화</a>
 <a href="sms:${SITE.telRaw}" class="f3" onclick="tk('sms')">문자</a>
 <a href="/contact" class="f2" onclick="tk('form')">상담</a>
@@ -1737,7 +1744,7 @@ ${bc(crumbs)}
 <div class="chips">${c.chips.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div>
 <div class="hbtn">
 <a class="btn b1" href="#contact" onclick="tk('cta')">무료 상담 신청</a>
-<a class="btn b2" href="tel:${SITE.telRaw}" onclick="tk('tel')">${SITE.tel}</a>
+<a class="btn b2" href="tel:${SITE.telRaw}" onclick="tk('tel')">${SITE.tel}</a><span class="telt htel">전화 ${SITE.tel}</span>
 </div>
 </div></div>`;
 }
@@ -1858,7 +1865,7 @@ function sidePanel(c, seed) {
 <div class="greet">${esc(L.greet)}</div>
 <div class="pl">${esc(t.area)} · ${esc(L.ko)} ${esc(t.pur)}</div>
 <ul>${rows.map(r => `<li><b>${esc(r[0])}</b><span>${esc(r[1])}</span></li>`).join('')}</ul>
-<a class="pcta" href="tel:${SITE.telRaw}" onclick="tk('tel')">${SITE.tel}</a>
+<a class="pcta" href="tel:${SITE.telRaw}" onclick="tk('tel')">${SITE.tel}</a><span class="telt ptel">전화 ${SITE.tel}</span>
 </div>`;
 }
 
@@ -2260,7 +2267,7 @@ function pageHome() {
 <p class="sub">전국 ${SIDO.length}개 시도 · ${ng}개 시군구 · ${nd.toLocaleString()}개 읍면동에서 1:1 회화 과외를 연결합니다. 화상과 전화로 진행하며, 목적 12가지로 나눠 커리큘럼을 다르게 설계합니다.</p>
 <div class="chips"><span class="chip">3개 언어</span><span class="chip">12가지 목적</span><span class="chip">화상·전화 1:1</span><span class="chip">주 1~5회</span></div>
 <div class="hbtn"><a class="btn b1" href="#contact" onclick="tk('cta')">무료 상담 신청</a>
-<a class="btn b2" href="tel:${SITE.telRaw}" onclick="tk('tel')">${SITE.tel}</a></div>
+<a class="btn b2" href="tel:${SITE.telRaw}" onclick="tk('tel')">${SITE.tel}</a><span class="telt htel">전화 ${SITE.tel}</span></div>
 </div></div>
 <section><div class="wrap"><h2>언어 선택</h2>
 <p class="lead">배우려는 언어를 고르면 목적별 과정과 지역별 안내로 이어집니다.</p>
@@ -2444,7 +2451,7 @@ function pageContact() {
 ${bc([['홈', '/'], ['상담문의', null]])}
 <h1>무료 상담 신청</h1>
 <p class="sub">지역·언어·목적·희망 시간대를 남겨주시면 맞는 선생님을 찾아 연락드립니다. 상담은 무료입니다.</p>
-<div class="hbtn"><a class="btn b1" href="tel:${SITE.telRaw}" onclick="tk('tel')">${SITE.tel}</a></div>
+<div class="hbtn"><a class="btn b1" href="tel:${SITE.telRaw}" onclick="tk('tel')">${SITE.tel}</a><span class="telt htel">전화 ${SITE.tel}</span></div>
 </div></div>
 <section><div class="wrap"><h2>이렇게 진행됩니다</h2>
 <p class="lead">상담부터 첫 수업까지 보통 3~5일 걸립니다.</p>
