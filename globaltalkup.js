@@ -2965,7 +2965,7 @@ const TRACK_TYPE = { view: 'view', tel: 'tel', sms: 'sms', form: 'contact', cta:
 
 async function handleTrack(req, env, ctx) {
   try {
-    const body = await req.json();
+    const body = await req.json(); const __task=(async()=>{ try{
     const ua = req.headers.get('user-agent') || '';
     /* 같은 방문자가 같은 버튼을 반복해 눌러도 1건만 기록·발송한다 */
     if (await tkDup(env, TRACK_SITE, TRACK_TYPE[body.e], String(body.p || '').slice(0, 300), req.headers.get('CF-Connecting-IP') || '')) {
@@ -2984,7 +2984,7 @@ async function handleTrack(req, env, ctx) {
           req.headers.get('CF-Connecting-IP') || '', new Date().toISOString(),
           ...tkMeta(ua, String(body.r || ''), 'globaltalkup.com', body.q||"")).run();
     }
-  } catch (e) { /* 추적 실패는 무시 */ }
+  }catch(e){ console.log('[track] fail', e&&e.message); } })(); if(ctx&&ctx.waitUntil) ctx.waitUntil(__task); else await __task; } catch (e) { /* 추적 실패는 무시 */ }
   return new Response('{"ok":true}', { headers: { 'content-type': 'application/json' } });
 }
 
