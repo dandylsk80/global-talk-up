@@ -2583,13 +2583,15 @@ function sitemapDong(langSlug, purSlug) {
 const AI_BOTS = [
   'GPTBot', 'OAI-SearchBot', 'ChatGPT-User',
   'Google-Extended', 'GoogleOther',
-  'ClaudeBot', 'Claude-Web', 'Claude-User', 'Claude-SearchBot', 'anthropic-ai',
+  'Claude-Web', 'Claude-User', 'Claude-SearchBot', 'anthropic-ai',
   'PerplexityBot', 'Perplexity-User',
-  'Applebot', 'Applebot-Extended',
-  'Amazonbot', 'Bytespider', 'meta-externalagent', 'FacebookBot',
+  'Applebot',
+  'Bytespider', 'FacebookBot',
   'CCBot', 'cohere-ai', 'DuckAssistBot', 'YouBot', 'Diffbot',
   'Timpibot', 'MistralAI-User', 'AI2Bot', 'Kangaroo Bot', 'omgili', 'Webzio-Extended'
 ];
+/* AI 학습용 수집 봇 — 검색·인용 노출과 무관하게 페이지를 대량으로 가져가 막는다 (2026-10-27, powerlandschool 10/12 와 같은 5종) */
+const TRAIN_BLOCK_BOTS = ['meta-externalagent', 'ClaudeBot', 'Applebot-Extended', 'Amazonbot', 'SERankingBacklinksBot'];
 const BLOCK_BOTS = ['SemrushBot', 'AhrefsBot', 'AhrefsSiteAudit', 'MJ12bot', 'DotBot', 'DataForSeoBot', 'BLEXBot', 'rogerbot', 'SEOkicks', 'Barkrowler', 'serpstatbot'];
 const SEARCH_BOTS = ['Googlebot', 'Googlebot-Image', 'bingbot', 'Yeti', 'Yeti-Mobile', 'Daumoa', 'NaverBot', 'DuckDuckBot'];
 
@@ -2597,8 +2599,10 @@ function robotsTxt() {
   const L = ['User-agent: *', 'Allow: /', 'Disallow: /api/', 'Crawl-delay: 1', ''];
   L.push('# 검색엔진 크롤러');
   for (const b of SEARCH_BOTS) L.push('User-agent: ' + b, 'Allow: /', '');
-  L.push('# AI 검색·학습 크롤러 — 인용을 위해 전체 허용');
+  L.push('# AI 검색·답변 크롤러 — 인용을 위해 허용');
   for (const b of AI_BOTS) { L.push('User-agent: ' + b, 'Allow: /'); if (b === 'GPTBot') L.push('Crawl-delay: 10'); L.push(''); }
+  L.push('# AI 학습용 수집 봇 — 차단');
+  for (const b of TRAIN_BLOCK_BOTS) L.push('User-agent: ' + b, 'Disallow: /', '');
   L.push('# SEO 분석 크롤러 — 색인에 도움 안 되므로 차단');
   for (const b of BLOCK_BOTS) L.push('User-agent: ' + b, 'Disallow: /', '');
   L.push('# 전체 목록: ' + SITE.origin + '/list');
