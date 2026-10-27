@@ -3,7 +3,7 @@ main = "globaltalkup.js"
 compatibility_date = "2025-01-01"
 
 [triggers]
-crons = ["0 * * * *"]
+crons = ["20 3 * * *"]   # 하루 1회 IndexNow (2026-10-27, 예전엔 매시간)
 
 [[d1_databases]]
 binding = "DB"
